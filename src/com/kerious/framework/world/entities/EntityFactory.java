@@ -10,6 +10,7 @@
 package com.kerious.framework.world.entities;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import com.kerious.framework.exceptions.KeriousException;
 import com.kerious.framework.utils.EventListenerHolder;
@@ -24,7 +25,7 @@ public class EntityFactory {
 
 	public final EventListenerHolder<Entity> onEntityRegistered = new EventListenerHolder<Entity>();
 	public final EventListenerHolder<Entity> onEntityUnregistered = new EventListenerHolder<Entity>();
-	private ArrayList<EntityTypeHandle> _entityTypes;
+	private List<EntityTypeHandle> _entityTypes;
 	private GameWorld _gameWorld;
 	private EntityHandler _entityHandler;
 	private boolean _allowAutoRegistering;
@@ -169,7 +170,7 @@ public class EntityFactory {
 	}
 	
 	public void destroyAllEntities() {
-		ArrayList<Entity> list = new ArrayList<Entity>(this._entityHandler.getEntities());
+		List<Entity> list = new ArrayList<Entity>(this._entityHandler.getEntities());
 		
 		for (Entity entity : list) {
 			this.destroyEntity(entity);

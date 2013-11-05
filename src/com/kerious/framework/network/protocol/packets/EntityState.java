@@ -173,9 +173,10 @@ public class EntityState implements Packable, Compressable<EntityState> {
 	////////////////
 	
 	public final float getCurrentVelocity() {
-		Vector2.tmp.x = ((float)moveDirectionX) / 100f;
-		Vector2.tmp.y = ((float)moveDirectionY) / 100f;		
-		float velocity = Vector2.tmp.len();
+		Vector2 tmp = new Vector2();
+		tmp.x = ((float)moveDirectionX) / 100f;
+		tmp.y = ((float)moveDirectionY) / 100f;		
+		float velocity = tmp.len();
 		
 		if (velocity > 1.27f) {
 			velocity = 1.27f;

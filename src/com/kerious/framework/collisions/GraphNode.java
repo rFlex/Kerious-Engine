@@ -45,10 +45,12 @@ public class GraphNode extends Rectangle implements IRectangle {
 	// GETTERS/SETTERS
 	////////////////
 
-	public void set(Rectangle rectangle) {
+	public Rectangle set(Rectangle rectangle) {
 		super.set(rectangle);
 		this.center.x = rectangle.getX() + rectangle.getWidth() / 2;
 		this.center.y = rectangle.getY() + rectangle.getHeight() / 2;
+		
+		return this;
 	}
 
 	public void addNeighbour(GraphNode node) {
