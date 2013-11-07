@@ -9,7 +9,7 @@
 
 package net.kerious.engine.renderer;
 
-import net.kerious.engine.controllers.ViewController;
+import net.kerious.engine.view.View;
 
 public class NullRenderer implements Renderer {
 
@@ -35,7 +35,7 @@ public class NullRenderer implements Renderer {
 	}
 
 	@Override
-	public void render(ViewController viewController) {
+	public void render(View view) {
 		
 	}
 	

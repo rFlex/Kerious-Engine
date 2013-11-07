@@ -9,8 +9,6 @@
 
 package net.kerious.engine.view;
 
-import net.kerious.engine.renderer.DrawingContext;
-
 public class Label extends View {
 
 	////////////////////////
@@ -29,10 +27,6 @@ public class Label extends View {
 	// METHODS
 	////////////////
 	
-	@Override
-	public void drawInRect(DrawingContext context, float x, float y, float width, float height) {
-		
-	}
 
 	////////////////////////
 	// GETTERS/SETTERS

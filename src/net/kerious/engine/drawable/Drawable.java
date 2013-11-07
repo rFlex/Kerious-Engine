@@ -13,6 +13,6 @@ import net.kerious.engine.renderer.DrawingContext;
 
 public interface Drawable {
 	
-	void draw(DrawingContext context, float x, float y, float width, float height);
+	void draw(DrawingContext context, float x, float y, float width, float height, float alpha);
 
 }

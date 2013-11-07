@@ -10,8 +10,8 @@
 package net.kerious.engine;
 
 import net.kerious.engine.console.Console;
-import net.kerious.engine.controllers.ViewController;
 import net.kerious.engine.renderer.Renderer;
+import net.kerious.engine.view.View;
 
 import me.corsin.javatools.misc.Disposable;
 import me.corsin.javatools.task.TaskQueue;
@@ -26,7 +26,7 @@ public class KeriousEngine implements Disposable {
 	final private Renderer renderer;
 	final private Console console;
 	final private KeriousEngineListener listener;
-	private ViewController keyViewController;
+	private View keyView;
 	private boolean disposed;
 
 	////////////////////////
@@ -51,14 +51,14 @@ public class KeriousEngine implements Disposable {
 	public void update(float deltaTime) {
 		this.taskQueue.flushTasks();
 		
-		if (this.keyViewController != null) {
-			this.keyViewController.act(deltaTime);
+		if (this.keyView != null) {
+			this.keyView.update(deltaTime);
 		}
 	}
 	
 	public void draw() {
-		if (this.keyViewController != null) {
-			this.renderer.render(this.keyViewController);
+		if (this.keyView != null) {
+			this.renderer.render(this.keyView);
 		}
 	}
 	
@@ -93,11 +93,11 @@ public class KeriousEngine implements Disposable {
 		return listener;
 	}
 
-	public ViewController getKeyViewController() {
-		return keyViewController;
+	public View getKeyView() {
+		return keyView;
 	}
 
-	public void setKeyViewController(ViewController keyViewController) {
-		this.keyViewController = keyViewController;
+	public void setKeyView(View keyView) {
+		this.keyView = keyView;
 	}
 }

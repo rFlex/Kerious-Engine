@@ -40,8 +40,8 @@ public class DrawableColor implements Drawable {
 	////////////////
 	
 	@Override
-	public void draw(DrawingContext context, float x, float y, float width, float height) {
-		context.fillRectangle(this.color, x, y, width, height);
+	public void draw(DrawingContext context, float x, float y, float width, float height, float alpha) {
+		context.fillRectangle(this.color, x, y, width, height, 0);
 	}
 
 	////////////////////////
