@@ -13,6 +13,7 @@ import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 
 import me.corsin.javatools.reflect.ReflectionUtils;
+import net.kerious.engine.input.LibgdxInputManager;
 import net.kerious.engine.renderer.LibgdxRenderer;
 
 public class KeriousEngineLibgdx extends KeriousEngine implements ApplicationListener {
@@ -27,7 +28,7 @@ public class KeriousEngineLibgdx extends KeriousEngine implements ApplicationLis
 	////////////////
 
 	public KeriousEngineLibgdx(KeriousEngineListener listener) {
-		super(new LibgdxRenderer(), listener);
+		super(new LibgdxRenderer(), new LibgdxInputManager(), listener);
 	}
 
 	////////////////////////
@@ -65,7 +66,7 @@ public class KeriousEngineLibgdx extends KeriousEngine implements ApplicationLis
 	}
 	
 	public static void start(KeriousEngineListener listener, String windowTitle, int width, int height) {
-		Object cfg = ReflectionUtils.newInstance("LwjglApplicationConfiguration");
+		Object cfg = ReflectionUtils.newInstance("com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration");
 		
 		// Is on desktop
 		if (cfg != null) {
@@ -73,14 +74,19 @@ public class KeriousEngineLibgdx extends KeriousEngine implements ApplicationLis
 			ReflectionUtils.setPublicField(cfg, "width", width);
 			ReflectionUtils.setPublicField(cfg, "height", height);
 			
-			Object lwjglInstance = ReflectionUtils.newInstance("LwjglApplication", new KeriousEngineLibgdx(listener), cfg);
+			Object lwjglInstance = ReflectionUtils.newInstance("com.badlogic.gdx.backends.lwjgl.LwjglApplication", new KeriousEngineLibgdx(listener), cfg);
 			
 			if (lwjglInstance == null) {
 				throw new KeriousException("Failed to start desktop application");
 			}
 		} else {
-			throw new KeriousException("The start method is only available on desktop for now");
+			throw new KeriousException("Couldn't find the Libgdx classes");
 		}
+	}
+
+	@Override
+	public void exit() {
+		Gdx.app.exit();
 	}
 	
 	////////////////////////

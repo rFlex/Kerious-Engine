@@ -33,6 +33,15 @@ public class Console {
 	// METHODS
 	////////////////
 	
+	public boolean unregisterCommand(ConsoleCommand consoleCommand) {
+		if (consoleCommand == null) {
+			throw new NullPointerException("consoleCommand");
+		}
+
+		consoleCommand.setConsole(this);
+		return this.commands.remove(consoleCommand) != null;
+	}
+	
 	public void registerCommand(ConsoleCommand consoleCommand) {
 		if (consoleCommand == null) {
 			throw new NullPointerException("consoleCommand");

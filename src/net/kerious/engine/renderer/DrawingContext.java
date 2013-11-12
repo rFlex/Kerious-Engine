@@ -12,6 +12,7 @@ package net.kerious.engine.renderer;
 import java.io.Closeable;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Rectangle;
@@ -41,5 +42,7 @@ public interface DrawingContext extends Closeable {
 	
 	Projection getProjection();
 	void setProjection(Projection projection);
+	
+	SpriteBatch getBatch();
 	
 }

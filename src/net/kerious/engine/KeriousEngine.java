@@ -10,13 +10,14 @@
 package net.kerious.engine;
 
 import net.kerious.engine.console.Console;
+import net.kerious.engine.input.InputManager;
 import net.kerious.engine.renderer.Renderer;
 import net.kerious.engine.view.View;
 
 import me.corsin.javatools.misc.Disposable;
 import me.corsin.javatools.task.TaskQueue;
 
-public class KeriousEngine implements Disposable {
+public abstract class KeriousEngine implements Disposable {
 
 	////////////////////////
 	// VARIABLES
@@ -26,6 +27,7 @@ public class KeriousEngine implements Disposable {
 	final private Renderer renderer;
 	final private Console console;
 	final private KeriousEngineListener listener;
+	final private InputManager inputManager;
 	private View keyView;
 	private boolean disposed;
 
@@ -33,8 +35,9 @@ public class KeriousEngine implements Disposable {
 	// CONSTRUCTORS
 	////////////////
 	
-	public KeriousEngine(Renderer renderer, KeriousEngineListener listener) {
+	public KeriousEngine(Renderer renderer, InputManager inputManager, KeriousEngineListener listener) {
 		this.listener = listener;
+		this.inputManager = inputManager;
 		this.taskQueue = new TaskQueue();
 		this.console = new Console();
 		this.renderer = renderer;
@@ -45,6 +48,7 @@ public class KeriousEngine implements Disposable {
 	////////////////
 	
 	public void initialize() {
+		this.inputManager.initialize();
 		this.renderer.initialize();
 	}
 	
@@ -61,6 +65,8 @@ public class KeriousEngine implements Disposable {
 			this.renderer.render(this.keyView);
 		}
 	}
+	
+	public abstract void exit();
 	
 	@Override
 	public void dispose() {
@@ -99,5 +105,10 @@ public class KeriousEngine implements Disposable {
 
 	public void setKeyView(View keyView) {
 		this.keyView = keyView;
+		this.inputManager.setTouchResponder(keyView);
+	}
+
+	public InputManager getInputManager() {
+		return inputManager;
 	}
 }

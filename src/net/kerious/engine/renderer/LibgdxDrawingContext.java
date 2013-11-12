@@ -13,17 +13,13 @@ import java.io.IOException;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
-import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack;
-import com.badlogic.gdx.utils.Pool;
 
 public class LibgdxDrawingContext implements DrawingContext {
 
@@ -36,7 +32,6 @@ public class LibgdxDrawingContext implements DrawingContext {
 	final private Matrix4 projectionMatrix;
 	
 	private Projection projection;
-	private Pool<Rectangle> rectanglePool;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -48,12 +43,6 @@ public class LibgdxDrawingContext implements DrawingContext {
 		this.projectionMatrix = new Matrix4();
 		
 		this.setProjection(new Projection((float)Gdx.graphics.getWidth(), (float)Gdx.graphics.getHeight()));
-		
-		this.rectanglePool = new Pool<Rectangle>() {
-			protected Rectangle newObject() {
-				return new Rectangle();
-			}
-		};
 	}
 
 	////////////////////////
@@ -85,18 +74,12 @@ public class LibgdxDrawingContext implements DrawingContext {
 	
 	@Override
 	public void limitRenderingBounds(Rectangle renderingBounds) {
-//		Rectangle rec = this.rectanglePool.obtain();
-//		rec.set(renderingBounds.x * this.currentProjectionRatioX,
-//				renderingBounds.y * this.currentProjectionRatioX,
-//				renderingBounds.width * this.currentProjectionRatioX,
-//				renderingBounds.height * this.currentProjectionRatioY);
-//		
-//		ScissorStack.pushScissors(rec);
+		ScissorStack.pushScissors(renderingBounds);
 	}
 
 	@Override
 	public void unlimitRenderingBounds() {
-//		this.rectanglePool.free(ScissorStack.popScissors());
+		ScissorStack.popScissors();
 	}
 	
 	@Override
@@ -142,8 +125,8 @@ public class LibgdxDrawingContext implements DrawingContext {
 
 	@Override
 	public boolean isVisibleInContext(Rectangle r) {
-		return true;
-//		return 0 < r.x + r.width && this.projection.width > r.x && 0 < r.y + r.height && this.projection.height > r.y;
+//		return true;
+		return 0 < r.x + r.width && this.projection.width > r.x && 0 < r.y + r.height && this.projection.height > r.y;
 	}
 
 	@Override
@@ -166,6 +149,11 @@ public class LibgdxDrawingContext implements DrawingContext {
 	public void setTransformMatrix(Matrix4 transformMatrix) {
 		this.spriteBatch.setTransformMatrix(transformMatrix);
 		this.shapeRenderer.setTransformMatrix(transformMatrix);
+	}
+
+	@Override
+	public SpriteBatch getBatch() {
+		return this.spriteBatch;
 	}
 
 }

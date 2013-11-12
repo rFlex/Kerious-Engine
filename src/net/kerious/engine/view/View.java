@@ -9,17 +9,21 @@
 
 package net.kerious.engine.view;
 
+import net.kerious.engine.animations.Animation;
+import net.kerious.engine.animations.ChangeFrameAnimation;
 import net.kerious.engine.drawable.Drawable;
+import net.kerious.engine.input.TouchResponder;
 import net.kerious.engine.renderer.DrawingContext;
-import net.kerious.engine.renderer.Projection;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.SnapshotArray;
 
-public class View {
+public class View implements TouchResponder {
 	
 	////////////////////////
 	// VARIABLES
@@ -35,28 +39,45 @@ public class View {
 	final private static Color tmpColor = new Color();
 	
 	final private SnapshotArray<View> views;
-	final private Rectangle frame;
 	final private Color tint;
-	final private Rectangle renderingBounds;
+	final private Rectangle screenFrame;
 	
 	final private Matrix3 localTransformMatrix;
 	final private Matrix3 drawingTransformMatrix;
 	final private Matrix4 contextTransformMatrix;
 	final private Matrix4 savedTransformMatrix;
 	
+	final private Rectangle frame;
+	final private Rectangle renderingFrame;
+	
+	private SnapshotArray<Animation> animations;
 	private Drawable background;
 	private View parentView;
-	private Projection projection;
 	private float rotation;
-	private float scaleX;
-	private float scaleY;
+	private float projectionRatioX;
+	private float projectionRatioY;
 	private float originX;
 	private float originY;
+	private float parentProjectionRatioX;
+	private float parentProjectionRatioY;
+	private float parentX;
+	private float parentY;
 	private boolean hidden;
 	private boolean clipViews;
-	private boolean shouldBeDrawn;
+	private boolean willBeDrawn;
 	private boolean transformMatrixDirty;
+	private boolean wasDrawn;
+	private boolean touchEnabled;
 	private int originType;
+	
+	// Animations
+	private static boolean animationStarted;
+	private static float animateTime;
+	private static int animationSequence;
+	private static Interpolation animationInterpolation;
+	private static Runnable animationCompletionHandler;
+	
+	private ChangeFrameAnimation changedFrameAnimation;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -64,17 +85,20 @@ public class View {
 	
 	public View() {
 		this.views = new SnapshotArray<View>(true, 4, View.class);
-		this.renderingBounds = new Rectangle();
+		this.screenFrame = new Rectangle();
 		this.frame = new Rectangle();
+		this.renderingFrame = new Rectangle();
 		this.tint = new Color(Color.WHITE);
 		this.setTint(this.tint);
 		this.localTransformMatrix = new Matrix3();
 		this.drawingTransformMatrix = new Matrix3();
 		this.contextTransformMatrix = new Matrix4();
 		this.savedTransformMatrix = new Matrix4();
-		this.scaleX = 1;
-		this.scaleY = 1;
+		this.animations = new SnapshotArray<Animation>(false, 4, Animation.class);
+		this.projectionRatioX = 1;
+		this.projectionRatioY = 1;
 		this.originType = ORIGIN_BOTTOM_LEFT;
+		this.touchEnabled = true;
 	}
 
 	////////////////////////
@@ -84,16 +108,15 @@ public class View {
 	/**
 	 * Inherit class should override this to implement the drawing
 	 * @param batch
-	 * @param x
-	 * @param y
 	 * @param width
 	 * @param height
 	 */
-	public void drawInRect(DrawingContext context, float x, float y, float width, float height, float alpha) {
+	public void drawView(DrawingContext context, float width, float height, float alpha) {
 		
 	}
 	
-	private Matrix3 computeTransformMatrix() {
+	final private Matrix3 computeTransformMatrix(float renderingFrameX, float renderingFrameY,
+			float renderingFrameWidth, float renderingFrameHeight) {
 		if (this.transformMatrixDirty) {
 			boolean originChanged = this.originType != ORIGIN_BOTTOM_LEFT;
 			float transformOriginX = 0;
@@ -102,18 +125,18 @@ public class View {
 			if (originChanged) {
 				switch (this.originType) {
 				case ORIGIN_BOTTOM_RIGHT:
-					transformOriginX = this.frame.width;
+					transformOriginX = renderingFrameWidth;
 					break;
 				case ORIGIN_TOP_LEFT:
-					transformOriginY = this.frame.height;
+					transformOriginY = renderingFrameHeight;
 					break;
 				case ORIGIN_TOP_RIGHT:
-					transformOriginX = this.frame.width;
-					transformOriginY = this.frame.height;
+					transformOriginX = renderingFrameWidth;
+					transformOriginY = renderingFrameHeight;
 					break;
 				case ORIGIN_CENTER:
-					transformOriginX = this.frame.width / 2;
-					transformOriginY = this.frame.height / 2;
+					transformOriginX = renderingFrameWidth * 0.5f;
+					transformOriginY = renderingFrameHeight * 0.5f;
 					break;
 				case ORIGIN_CUSTOM:
 					transformOriginX = this.originX;
@@ -129,15 +152,15 @@ public class View {
 				this.localTransformMatrix.rotate(this.rotation);
 			}
 			
-			if (this.scaleX != 1 || this.scaleY != 1) {
-				this.localTransformMatrix.scale(this.scaleX, this.scaleY);
+			if (this.projectionRatioX != 1 || this.projectionRatioY != 1) {
+				this.localTransformMatrix.scale(this.projectionRatioX, this.projectionRatioY);
 			}
 			
 			if (originChanged) {
 				this.localTransformMatrix.translate(-transformOriginX, -transformOriginY);
 			}
 			
-			this.localTransformMatrix.trn(this.frame.x, this.frame.y);
+			this.localTransformMatrix.trn(renderingFrameX, renderingFrameY);
 			this.transformMatrixDirty = false;
 		}
 		
@@ -151,8 +174,10 @@ public class View {
 		return this.drawingTransformMatrix;
 	}
 	
-	private void applyTransformToContext(DrawingContext context) {
-		Matrix3 transformMatrix = this.computeTransformMatrix();
+	final private void applyTransformToContext(DrawingContext context, float renderingFrameX, float renderingFrameY,
+			float renderingFrameWidth, float renderingFrameHeight) {
+		Matrix3 transformMatrix = this.computeTransformMatrix(renderingFrameX, renderingFrameY,
+				renderingFrameWidth, renderingFrameHeight);
 		
 		this.savedTransformMatrix.set(context.getTransformMatrix());
 		
@@ -160,28 +185,44 @@ public class View {
 		context.setTransformMatrix(this.contextTransformMatrix);
 	}
 	
-	private void restoreTransformToContext(DrawingContext context) {
+	final private void restoreTransformToContext(DrawingContext context) {
 		context.setTransformMatrix(this.savedTransformMatrix);
 	}
 	
-	final public boolean draw(DrawingContext context, float parentAlpha) {
-		if (!this.shouldBeDrawn) {
+	final public boolean draw(DrawingContext context, float currentScreenX, float currentScreenY,
+			float currentProjectionRatioX, float currentProjectionRatioY, float parentAlpha) {
+		if (!this.willBeDrawn) {
+			this.wasDrawn = false;
 			return false;
 		}
 		
-		this.renderingBounds.set(this.frame.x, this.frame.height, this.frame.width, this.frame.height);
+		float renderingFrameX = this.renderingFrame.x;
+		float renderingFrameY = this.renderingFrame.y;
+		float renderingFrameWidth = this.renderingFrame.width;
+		float renderingFrameHeight = this.renderingFrame.height;
 		
-		if (!context.isVisibleInContext(this.renderingBounds)) {
+		this.parentProjectionRatioX = currentProjectionRatioX;
+		this.parentProjectionRatioY = currentProjectionRatioY;
+		this.parentX = currentScreenX;
+		this.parentY = currentScreenY;
+
+		currentScreenX += renderingFrameX * currentProjectionRatioX;
+		currentScreenY += renderingFrameY * currentProjectionRatioY;
+		
+		this.screenFrame.set(currentScreenX, currentScreenY, renderingFrameWidth * currentProjectionRatioX, renderingFrameHeight * currentProjectionRatioY);
+		
+		if (!context.isVisibleInContext(this.screenFrame)) {
+			this.wasDrawn = false;
 			return false;
 		}
-		
+
 		final boolean clipViews = this.clipViews;
 		
 		if (clipViews) {
-			context.limitRenderingBounds(this.renderingBounds);
+			context.limitRenderingBounds(this.screenFrame);
 		}
 		
-		this.applyTransformToContext(context);
+		this.applyTransformToContext(context, renderingFrameX, renderingFrameY, renderingFrameWidth, renderingFrameHeight);
 		
 		float oldTint = context.getTint();
 		
@@ -191,15 +232,18 @@ public class View {
 		context.setTint(tmpColor.toFloatBits());
 		
 		if (this.background != null) {
-			this.background.draw(context, 0, 0, this.frame.width, this.frame.height, currentAlpha);
+			this.background.draw(context, 0, 0, renderingFrameWidth, renderingFrameHeight, currentAlpha);
 		}
 		
-		this.drawInRect(context, 0, 0, this.frame.width, this.frame.height, currentAlpha);
+		this.drawView(context, renderingFrameWidth, renderingFrameHeight, currentAlpha);
+		
+		currentProjectionRatioX *= this.projectionRatioX;
+		currentProjectionRatioY *= this.projectionRatioY;
 
 		View[] views = this.views.begin();
 		for (int i = 0, length = this.views.size; i < length; i++) {
 			final View view = views[i];
-			view.draw(context, currentAlpha);
+			view.draw(context, currentScreenX, currentScreenY, currentProjectionRatioX, currentProjectionRatioY, currentAlpha);
 		}
 		this.views.end();
 		
@@ -211,23 +255,55 @@ public class View {
 		
 		context.setTint(oldTint);
 		
-		this.shouldBeDrawn = false;
+		this.willBeDrawn = false;
+		this.wasDrawn = true;
 		
 		return true;
 	}
 	
-	public void update(float delta) {
+	public void update(float deltaTime) {
 		if (this.isVisible()) {
-			this.shouldBeDrawn = true;
+			this.willBeDrawn = true;
 		}
+		
+		Animation[] animations = this.animations.begin();
+		for (int i = 0, length = this.animations.size; i < length; i++) {
+			final Animation animation = animations[i];
+			
+			if (!animation.hasExpired()) {
+				animation.update(deltaTime);
+			}
+			
+			if (animation.hasExpired()) {
+				this.animations.removeIndex(i);
+				
+				if (animation == this.changedFrameAnimation) {
+					this.changedFrameAnimation = null;
+				}
+				
+				animation.removedFromView();
+				animation.release();
+			}
+		}
+		this.animations.end();
 		
 		View[] subViews = this.views.begin();
 		
 		for (int i = 0, length = this.views.size; i < length; i++) {
-			subViews[i].update(delta);
+			subViews[i].update(deltaTime);
 		}
 		
 		this.views.end();
+	}
+	
+	public void addAnimation(Animation animation) {
+		if (animation == null) {
+			throw new IllegalArgumentException("animation may not be null");
+		}
+		
+		animation.setView(this);
+		
+		this.animations.add(animation);
 	}
 	
 	public void addView(View view) {
@@ -263,13 +339,124 @@ public class View {
 		}
 	}
 	
+	public Vector2 getScreenPosition(Vector2 outputVector) {
+		return this.getPositionForViewCoordinate(null, outputVector);
+	}
+	
+	public Vector2 getPositionForViewCoordinate(View otherView, Vector2 outputVector) {
+		outputVector.x = 0;
+		outputVector.y = 0;
+
+		View currentView = this;
+		while (currentView != null && currentView != otherView) {
+			float x = currentView.frame.x;
+			float y = currentView.frame.y;
+			
+			if (this.projectionRatioX != 1 || this.projectionRatioY != 1) {
+				x *= this.projectionRatioX;
+				y *= this.projectionRatioY;
+			}
+			
+			outputVector.x += x;
+			outputVector.y += y;
+		}
+		
+		return outputVector;
+	}
+	
+	@Override
+	public TouchResponder getBestTouchResponderForLocation(float x, float y) {
+		if (!this.screenFrame.contains(x, y)) {
+			return null;
+		}
+		
+		TouchResponder bestResponder = null;
+		
+		final View[] views = this.views.items;
+		for (int i = this.views.size - 1; bestResponder == null &&i >= 0; i--) {
+			final View currentView = views[i];
+			
+			if (currentView.isAvailableForTouchResponding()) {
+				bestResponder = currentView.getBestTouchResponderForLocation(x, y);
+			}
+		}
+		
+		if (bestResponder == null) {
+			bestResponder = this;
+		}
+		
+		return bestResponder;
+	}
+	
+	@Override
+	public String toString() {
+		return this.getClass().getSimpleName() + ": {" + this.frame + "}";
+	}
+	
+	@Override
+	public Vector2 convertScreenToTouchResponderLocation(float x, float y, Vector2 output) {
+		float realX = x - this.parentX;
+		float realY = y - this.parentY;
+		
+		output.x = realX / this.parentProjectionRatioX;
+		output.y = realY / this.parentProjectionRatioY;
+		
+		return output;
+	}
+
+	@Override
+	public void onTouchDown(int pointer, float x, float y, int button) {
+		
+	}
+
+	@Override
+	public void onTouchUp(int pointer, float x, float y, int button) {
+		
+	}
+
+	@Override
+	public void onTouchDragged(int pointer, float x, float y, int button) {
+		
+	}
+	
+	@Override
+	public void onTouchOver(float x, float y) {
+		
+	}
+	
 	public void makeDirty() {
 		this.transformMatrixDirty = true;
 	}
 	
 	public void moveToCenterOf(Rectangle rectangle) {
-		this.frame.setCenter(rectangle.x + rectangle.width / 2, rectangle.y + rectangle.height / 2);
+		this.frame.setCenter(rectangle.x + rectangle.width * 0.5f, rectangle.y + rectangle.height * 0.5f);
 		this.transformMatrixDirty = true;
+	}
+	
+	public static void beginAnimation(float time) {
+		beginAnimation(time, null, null);
+	}
+	
+	public static void beginAnimation(float time, Interpolation interpolation) {
+		beginAnimation(time, interpolation, null);
+	}
+	
+	public static void beginAnimation(float time, Interpolation interpolation, Runnable completionHandler) {
+		if (interpolation == null) {
+			interpolation = Interpolation.linear;
+		}
+		
+		animationStarted = true;
+		animationInterpolation = interpolation;
+		animationCompletionHandler = completionHandler;
+		animateTime = time;
+	}
+	
+	public static void endAnimation() {
+		animationStarted = false;
+		animateTime = 0;
+		animationInterpolation = null;
+		animationSequence++;
 	}
 	
 	/**
@@ -310,6 +497,58 @@ public class View {
 		this.originType = ORIGIN_CUSTOM;
 		this.transformMatrixDirty = true;
 	}
+	
+	final private void removeFrameAnimation() {
+		if (this.changedFrameAnimation != null && this.changedFrameAnimation.getAnimationSequence() != this.animationSequence) {
+			// The changed frame is part from an old animation, removing it
+			this.changedFrameAnimation.setExpired(true);
+			this.changedFrameAnimation = null;
+		}
+	}
+	
+	final private void willChangeFrame() {
+		this.removeFrameAnimation();
+
+		if (animationStarted) {
+			if (this.changedFrameAnimation == null) {
+				this.changedFrameAnimation = ChangeFrameAnimation.create();
+				this.changedFrameAnimation.setAnimationSequence(animationSequence);
+				this.changedFrameAnimation.setDuration(animateTime);
+				this.changedFrameAnimation.setInterpolation(animationInterpolation);
+				this.changedFrameAnimation.setEndedCallback(animationCompletionHandler);
+				
+				this.addAnimation(this.changedFrameAnimation);
+			}
+		}
+	}
+	
+	final private void didChangeFrame() {
+		this.transformMatrixDirty = true;
+		
+		if (!animationStarted) {
+			this.renderingFrame.set(this.frame);
+		} else {
+			this.changedFrameAnimation.setEndFrame(this.frame);
+		}
+	}
+	
+	final private void willChangeColor() {
+		// TODO Implement color animation
+	}
+	
+	final private void didChangeColor() {
+		// TODO Implement color animation
+	}
+	
+	
+	final private void willChangeRotation() {
+		// TODO Implement rotation animation
+	}
+	
+	final private void didChangeRotation() {
+		// TODO Implement rotation animation
+		this.transformMatrixDirty = true;
+	}
 
 	////////////////////////
 	// GETTERS/SETTERS
@@ -327,7 +566,7 @@ public class View {
 	/**
 	 * Get the View frame. Modifying the returned rectangle will have no effect
 	 * until makeDirty() is called on the view. If you want to safely change the view
-	 * position,
+	 * position, use setFrame
 	 * @return the view Frame
 	 */
 	public Rectangle getFrame() {
@@ -335,33 +574,43 @@ public class View {
 	}
 	
 	public void setX(float x) {
-		this.frame.x = x;
-		this.transformMatrixDirty = true;
+		this.setFrame(x, this.frame.y, this.frame.width, this.frame.height);
+	}
+	
+	public float getX() {
+		return this.frame.x;
 	}
 	
 	public void setY(float y) {
-		this.frame.y = y;
-		this.transformMatrixDirty = true;
+		this.setFrame(this.frame.x, y, this.frame.width, this.frame.height);
+	}
+	
+	public float getY() {
+		return this.frame.y;
 	}
 	
 	public void setWidth(float width) {
-		this.frame.width = width;
-		this.transformMatrixDirty = true;
+		this.setFrame(this.frame.x, this.frame.y, width, this.frame.height);
+	}
+	
+	public float getWidth() {
+		return this.frame.width;
 	}
 	
 	public void setHeight(float height) {
-		this.frame.height = height;
-		this.transformMatrixDirty = true;
+		this.setFrame(this.frame.x, this.frame.y, this.frame.width, height);
+	}
+	
+	public float getHeight() {
+		return this.frame.height;
 	}
 	
 	public void setPosition(float x, float y) {
-		this.frame.setPosition(x, y);
-		this.transformMatrixDirty = true;
+		this.setFrame(x, y, this.frame.width, this.frame.height);
 	}
 	
 	public void setSize(float width, float height) {
-		this.frame.setSize(width, height);
-		this.transformMatrixDirty = true;
+		this.setFrame(this.frame.x, this.frame.y, width, height);
 	}
 	
 	public void setFrame(Rectangle frame) {
@@ -373,7 +622,22 @@ public class View {
 	}
 	
 	public void setFrame(float x, float y, float width, float height) {
+		this.willChangeFrame();
 		this.frame.set(x, y, width, height);
+		this.didChangeFrame();
+	}
+	
+	public Rectangle getRenderingFrame() {
+		return this.renderingFrame;
+	}
+	
+	public void setRenderingFrame(float x, float y, float width, float height) {
+		this.renderingFrame.set(x, y, width, height);
+		this.transformMatrixDirty = true;
+	}
+	
+	public void setRenderingFrame(Rectangle frame) {
+		this.renderingFrame.set(frame);
 		this.transformMatrixDirty = true;
 	}
 
@@ -401,7 +665,9 @@ public class View {
 	 * @param the new tint
 	 */
 	public void setTint(Color tint) {
+		this.willChangeColor();
 		this.tint.set(tint);
+		this.didChangeColor();
 	}
 	
 	public float getAlpha() {
@@ -413,8 +679,9 @@ public class View {
 	 * @param alpha
 	 */
 	public void setAlpha(float alpha) {
+		this.willChangeColor();
 		this.tint.a = alpha;
-		this.setTint(this.tint);
+		this.didChangeColor();
 	}
 	
 	/**
@@ -456,61 +723,57 @@ public class View {
 		this.clipViews = clipsViews;
 	}
 
-	public Projection getProjection() {
-		return projection;
-	}
-
-	/**
-	 * If not null, while drawing the view will be projected in the specified projection
-	 * If null, the view while use the parent projection
-	 * By default views are projected using the screen size
-	 * @param projection
-	 */
-	public void setProjection(Projection projection) {
-		this.projection = projection;
-	}
-
 	public float getRotation() {
 		return rotation;
 	}
 
 	public void setRotation(float rotation) {
+		this.willChangeRotation();
 		this.rotation = rotation;
+		this.didChangeRotation();
+	}
+
+	public float getProjectionRatioX() {
+		return projectionRatioX;
+	}
+
+	public void setProjectionRatioX(float projectionRatioX) {
+		this.projectionRatioX = projectionRatioX;
 		this.transformMatrixDirty = true;
 	}
 
-	public float getScaleX() {
-		return scaleX;
+	public float getProjectionRatioY() {
+		return projectionRatioY;
 	}
 
-	public void setScaleX(float scaleX) {
-		this.scaleX = scaleX;
-		this.transformMatrixDirty = true;
-	}
-
-	public float getScaleY() {
-		return scaleY;
-	}
-
-	public void setScaleY(float scaleY) {
-		this.scaleY = scaleY;
-		this.transformMatrixDirty = true;
-	}
-	
-	public void setScaleXY(float scaleX, float scaleY) {
-		this.scaleX = scaleX;
-		this.scaleY = scaleY;
+	public void setProjectionRatioY(float projectionRatioY) {
+		this.projectionRatioY = projectionRatioY;
 		this.transformMatrixDirty = true;
 	}
 	
-	public void setScaleXY(float scaleXY) {
-		this.scaleX = scaleXY;
-		this.scaleY = scaleXY;
+	public void setProjectionRatioXY(float projectionRatioX, float projectionRatioY) {
+		this.projectionRatioX = projectionRatioX;
+		this.projectionRatioY = projectionRatioY;
+		this.transformMatrixDirty = true;
+	}
+	
+	public void setProjectionRatioXY(float projectionRatioXY) {
+		this.projectionRatioX = projectionRatioXY;
+		this.projectionRatioY = projectionRatioXY;
 		this.transformMatrixDirty = true;
 	}
 	
 	public float getOriginX() {
-		return originX;
+		switch (this.originType) {
+		case ORIGIN_BOTTOM_RIGHT:
+		case ORIGIN_TOP_RIGHT:
+			return this.frame.width;
+		case ORIGIN_CENTER:
+			return this.frame.width * 0.5f;
+		case ORIGIN_CUSTOM:
+			return this.originX;
+		}
+		return 0;
 	}
 
 	/**
@@ -524,9 +787,18 @@ public class View {
 	}
 
 	public float getOriginY() {
-		return originY;
+		switch (this.originType) {
+		case ORIGIN_TOP_LEFT:
+		case ORIGIN_TOP_RIGHT:
+			return this.frame.height;
+		case ORIGIN_CENTER:
+			return this.frame.height * 0.5f;
+		case ORIGIN_CUSTOM:
+			return this.originY;
+		}
+		return 0;
 	}
-
+	
 	/**
 	 * Change the point Y to which the view is scaled or rotated
 	 * Using this method will automatically set the origin type to CUSTOM
@@ -535,5 +807,26 @@ public class View {
 	public void setOriginY(float originY) {
 		this.originY = originY;
 		this.setOriginToCustom();
+	}
+
+	public boolean isTouchEnabled() {
+		return touchEnabled;
+	}
+	
+	public boolean willBeDrawn() {
+		return this.willBeDrawn;
+	}
+	
+	public boolean wasDrawn() {
+		return this.wasDrawn;
+	}
+
+	public void setTouchEnabled(boolean touchEnabled) {
+		this.touchEnabled = touchEnabled;
+	}
+
+	@Override
+	public boolean isAvailableForTouchResponding() {
+		return this.wasDrawn && this.touchEnabled;
 	}
 }

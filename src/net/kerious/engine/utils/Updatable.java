@@ -12,5 +12,6 @@ package net.kerious.engine.utils;
 public interface Updatable {
 
 	void update(float deltaTime);
+	boolean hasExpired();
 	
 }

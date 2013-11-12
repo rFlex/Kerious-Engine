@@ -33,7 +33,7 @@ public class ViewController {
 		this.engine = engine;
 		
 		this.setView(new View());
-		this.view.getFrame().setSize(engine.getRenderer().getWindowWidth(), engine.getRenderer().getWindowHeight());
+		this.view.setSize(engine.getRenderer().getWindowWidth(), engine.getRenderer().getWindowHeight());
 	}
 
 	////////////////////////
