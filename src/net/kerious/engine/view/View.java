@@ -9,6 +9,7 @@
 
 package net.kerious.engine.view;
 
+import me.corsin.javatools.misc.PoolableImpl;
 import net.kerious.engine.animations.Animation;
 import net.kerious.engine.animations.ChangeFrameAnimation;
 import net.kerious.engine.drawable.Drawable;
@@ -23,7 +24,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.SnapshotArray;
 
-public class View implements TouchResponder {
+public class View extends PoolableImpl implements TouchResponder {
 	
 	////////////////////////
 	// VARIABLES
@@ -499,7 +500,7 @@ public class View implements TouchResponder {
 	}
 	
 	final private void removeFrameAnimation() {
-		if (this.changedFrameAnimation != null && this.changedFrameAnimation.getAnimationSequence() != this.animationSequence) {
+		if (this.changedFrameAnimation != null && this.changedFrameAnimation.getAnimationSequence() != animationSequence) {
 			// The changed frame is part from an old animation, removing it
 			this.changedFrameAnimation.setExpired(true);
 			this.changedFrameAnimation = null;

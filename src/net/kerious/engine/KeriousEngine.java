@@ -9,9 +9,12 @@
 
 package net.kerious.engine;
 
+import com.badlogic.gdx.utils.SnapshotArray;
+
 import net.kerious.engine.console.Console;
 import net.kerious.engine.input.InputManager;
 import net.kerious.engine.renderer.Renderer;
+import net.kerious.engine.utils.TemporaryUpdatable;
 import net.kerious.engine.view.View;
 
 import me.corsin.javatools.misc.Disposable;
@@ -28,6 +31,7 @@ public abstract class KeriousEngine implements Disposable {
 	final private Console console;
 	final private KeriousEngineListener listener;
 	final private InputManager inputManager;
+	final private SnapshotArray<TemporaryUpdatable> updatables;
 	private View keyView;
 	private boolean disposed;
 
@@ -40,6 +44,7 @@ public abstract class KeriousEngine implements Disposable {
 		this.inputManager = inputManager;
 		this.taskQueue = new TaskQueue();
 		this.console = new Console();
+		this.updatables = new SnapshotArray<TemporaryUpdatable>(false, 32, TemporaryUpdatable.class);
 		this.renderer = renderer;
 	}
 
@@ -55,6 +60,18 @@ public abstract class KeriousEngine implements Disposable {
 	public void update(float deltaTime) {
 		this.taskQueue.flushTasks();
 		
+		TemporaryUpdatable[] updatables = this.updatables.begin();
+		for (int i = 0, length = this.updatables.size; i < length; i++) {
+			TemporaryUpdatable updatable = updatables[i];
+			
+			if (!updatable.hasExpired()) {
+				updatable.update(deltaTime);
+			} else {
+				this.updatables.removeIndex(i);
+			}
+		}
+		this.updatables.end();
+		
 		if (this.keyView != null) {
 			this.keyView.update(deltaTime);
 		}
@@ -64,6 +81,14 @@ public abstract class KeriousEngine implements Disposable {
 		if (this.keyView != null) {
 			this.renderer.render(this.keyView);
 		}
+	}
+	
+	public void addTemporaryUpdatable(TemporaryUpdatable updatable) {
+		this.updatables.add(updatable);
+	}
+	
+	public void removeTemporaryUpdatable(TemporaryUpdatable updatable) {
+		this.updatables.removeValue(updatable, true);
 	}
 	
 	public abstract void exit();

@@ -13,6 +13,7 @@ import com.badlogic.gdx.utils.Pool;
 
 import net.kerious.engine.view.View;
 
+@SuppressWarnings("unused")
 public class RotationAnimation extends TemporalAnimation {
 
 	

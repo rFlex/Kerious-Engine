@@ -12,11 +12,11 @@ package net.kerious.engine.animations;
 import com.badlogic.gdx.utils.Pool;
 import com.badlogic.gdx.utils.Pool.Poolable;
 
-import net.kerious.engine.utils.Updatable;
+import net.kerious.engine.utils.TemporaryUpdatable;
 import net.kerious.engine.view.View;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
-public abstract class Animation implements Updatable, Poolable {
+public abstract class Animation implements TemporaryUpdatable, Poolable {
 
 	////////////////////////
 	// VARIABLES

@@ -9,7 +9,7 @@
 
 package net.kerious.engine.utils;
 
-public interface Updatable {
+public interface TemporaryUpdatable {
 
 	void update(float deltaTime);
 	boolean hasExpired();
