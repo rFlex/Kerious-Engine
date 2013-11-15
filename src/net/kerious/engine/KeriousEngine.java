@@ -14,6 +14,7 @@ import com.badlogic.gdx.utils.SnapshotArray;
 import net.kerious.engine.console.Console;
 import net.kerious.engine.input.InputManager;
 import net.kerious.engine.renderer.Renderer;
+import net.kerious.engine.skin.SkinManager;
 import net.kerious.engine.utils.TemporaryUpdatable;
 import net.kerious.engine.view.View;
 
@@ -32,6 +33,7 @@ public abstract class KeriousEngine implements Disposable {
 	final private KeriousEngineListener listener;
 	final private InputManager inputManager;
 	final private SnapshotArray<TemporaryUpdatable> updatables;
+	final private SkinManager globalSkinManager;
 	private View keyView;
 	private boolean disposed;
 
@@ -45,6 +47,7 @@ public abstract class KeriousEngine implements Disposable {
 		this.taskQueue = new TaskQueue();
 		this.console = new Console();
 		this.updatables = new SnapshotArray<TemporaryUpdatable>(false, 32, TemporaryUpdatable.class);
+		this.globalSkinManager = new SkinManager(true);
 		this.renderer = renderer;
 	}
 
@@ -135,5 +138,9 @@ public abstract class KeriousEngine implements Disposable {
 
 	public InputManager getInputManager() {
 		return inputManager;
+	}
+	
+	public SkinManager getGlobalSkinManager() {
+		return this.globalSkinManager;
 	}
 }

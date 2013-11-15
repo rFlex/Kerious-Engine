@@ -40,6 +40,9 @@ public class ViewController {
 	// METHODS
 	////////////////
 
+	/**
+	 * Set the view of the ViewController as the KeyView in the engine
+	 */
 	public void makeKeyView() {
 		this.engine.setKeyView(this.getView());
 	}

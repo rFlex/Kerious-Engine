@@ -114,6 +114,12 @@ public class SkinManager {
 		return skin.getId();
 	}
 	
+	public View createView(String skinName) throws SkinException {
+		Skin skin = this.getSkin(skinName);
+		
+		return skin.createView();
+	}
+	
 	public View createView(int id) throws SkinException {
 		Skin skin = this.getSkin(id);
 		

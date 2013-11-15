@@ -14,13 +14,14 @@ import net.kerious.engine.controllers.ViewController;
 import net.kerious.engine.entity.Entity;
 import net.kerious.engine.entity.EntityException;
 import net.kerious.engine.entity.EntityManager;
+import net.kerious.engine.entity.EntityManagerListener;
 import net.kerious.engine.skin.SkinManager;
 import net.kerious.engine.utils.TemporaryUpdatable;
 
 import com.badlogic.gdx.utils.SnapshotArray;
 
 @SuppressWarnings("rawtypes")
-public class World extends ViewController implements TemporaryUpdatable {
+public class World extends ViewController implements TemporaryUpdatable, EntityManagerListener {
 
 	////////////////////////
 	// VARIABLES
@@ -31,6 +32,7 @@ public class World extends ViewController implements TemporaryUpdatable {
 	final private SkinManager skinManager;
 	final private boolean renderingEnabled;
 	final private boolean hasAuthority;
+	private WorldListener listener;
 	private boolean addedToEngine;
 
 	////////////////////////
@@ -46,12 +48,17 @@ public class World extends ViewController implements TemporaryUpdatable {
 		this.entities = new SnapshotArray<Entity>(true, 64, Entity.class);
 		this.skinManager = new SkinManager(hasAuthority);
 		this.entityManager = new EntityManager();
+		
+		this.entityManager.setListener(this);
 	}
 
 	////////////////////////
 	// METHODS
 	////////////////
 
+	/**
+	 * Register the world to the engine so it starts to update itself
+	 */
 	public void beginReceiveUpdates() {
 		if (!this.addedToEngine) {
 			this.addedToEngine = true;
@@ -59,6 +66,9 @@ public class World extends ViewController implements TemporaryUpdatable {
 		}
 	}
 	
+	/**
+	 * Unregister the world to the engine. The world wont update itself anymore after calling this method 
+	 */
 	public void endReceiveUpdates() {
 		if (this.addedToEngine) {
 			this.addedToEngine = false;
@@ -68,6 +78,10 @@ public class World extends ViewController implements TemporaryUpdatable {
 	
 	@Override
 	public void update(float deltaTime) {
+		if (this.listener != null) {
+			this.listener.willUpdateWorld(this);
+		}
+		
 		Entity[] entities = this.entities.begin();
 		for (int i = 0, length = this.entities.size; i < length; i++) {
 			Entity entity = entities[i];
@@ -81,6 +95,10 @@ public class World extends ViewController implements TemporaryUpdatable {
 			}
 		}
 		this.entities.end();
+		
+		if (this.listener != null) {
+			this.listener.didUpdateWorld(this);
+		}
 	}
 	
 	public Entity createEntity(int entityType) throws EntityException {
@@ -101,7 +119,21 @@ public class World extends ViewController implements TemporaryUpdatable {
 		entity.setWorld(this);
 		entity.addedToWorld();
 	}
+	
+	@Override
+	public void onEntityCreated(Entity entity) {
+		if (this.listener != null) {
+			this.listener.onEntityCreated(this, entity);
+		}
+	}
 
+	@Override
+	public void onEntityDestroyed(int entityId) {
+		if (this.listener != null) {
+			this.listener.onEntityDestroyed(this, entityId);
+		}
+	}
+	
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
@@ -126,5 +158,13 @@ public class World extends ViewController implements TemporaryUpdatable {
 
 	public EntityManager getEntityManager() {
 		return entityManager;
+	}
+
+	public WorldListener getListener() {
+		return listener;
+	}
+
+	public void setListener(WorldListener listener) {
+		this.listener = listener;
 	}
 }

@@ -4,5 +4,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 	<classpathentry kind="src" path="/SCJavaTools"/>
 	<classpathentry kind="lib" path="/Users/simoncorsin/Downloads/libgdx-0.9.9/gdx.jar" sourcepath="/Users/simoncorsin/Downloads/libgdx-0.9.9/sources/gdx-sources.jar"/>
+	<classpathentry kind="src" path="/SCJavaNetwork"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
