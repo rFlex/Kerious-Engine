@@ -276,7 +276,7 @@ public class View extends PoolableImpl implements TouchResponder {
 			}
 			
 			if (animation.hasExpired()) {
-				this.animations.removeIndex(i);
+				this.animations.removeValue(animation, true);
 				
 				if (animation == this.changedFrameAnimation) {
 					this.changedFrameAnimation = null;

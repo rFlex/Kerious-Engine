@@ -68,10 +68,15 @@ public class SkinManager {
 	}
 	
 	public Skin loadSkin(String skinName) throws SkinException {
+		String fileName = this.directory + "/" + skinName + ".skin";
+		
+		return loadSkin(skinName, fileName);
+	}
+	
+	public Skin loadSkin(String skinName, String fileName) throws SkinException {
 		Skin skin = this.skinsByName.get(skinName);
 		
 		if (skin == null) {
-			String fileName = this.directory + "/" + skinName + ".skin";
 			skin = this.loadSkinFromFilename(fileName);
 			
 			this.registerSkin(skinName, skin);

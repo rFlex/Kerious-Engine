@@ -38,7 +38,18 @@ public class EntityModel extends PoolableImpl {
 	// METHODS
 	////////////////
 
-
+	@Override
+	public void reset() {
+		this.type = 0;
+		this.parentId = 0;
+		this.id = 0;
+		this.skinId = 0;
+		this.x = 0;
+		this.y = 0;
+		this.width = 0;
+		this.height = 0;
+	}
+	
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////

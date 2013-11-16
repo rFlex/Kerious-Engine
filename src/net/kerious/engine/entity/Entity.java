@@ -167,6 +167,13 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	}
 	
 	/**
+	 * Called when the view has changed
+	 */
+	public void viewChanged() {
+		
+	}
+	
+	/**
 	 * Signal to the entity that it has been removed from the world
 	 */
 	public void removedFromWorld() {
@@ -211,7 +218,9 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	public void reset() {
 		super.reset();
 		
+		this.currentSkinId = 0;
 		this.destroyWhenRemoved = false;
+		this.shouldBeRemoved = false;
 		this.setView(null);
 	}
 	
@@ -232,6 +241,18 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
+	
+	/**
+	 * Change the Entity's position and update the model
+	 * @param x
+	 * @param y
+	 */
+	public void setPosition(float x, float y) {
+		this.model.setX(x);
+		this.model.setY(y);
+		
+		this.modelChanged();
+	}
 	
 	public EntityModelType getModel() {
 		return this.model;
@@ -264,6 +285,7 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 					this.updateView(view, this.model);
 				}
 			}
+			this.viewChanged();
 		}
 	}
 

@@ -70,7 +70,7 @@ public abstract class KeriousEngine implements Disposable {
 			if (!updatable.hasExpired()) {
 				updatable.update(deltaTime);
 			} else {
-				this.updatables.removeIndex(i);
+				this.updatables.removeValue(updatable, true);
 			}
 		}
 		this.updatables.end();

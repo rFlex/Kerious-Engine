@@ -11,6 +11,7 @@ package net.kerious.engine.entity;
 
 import net.kerious.engine.entity.model.EntityModel;
 import me.corsin.javatools.misc.Pool;
+import me.corsin.javatools.misc.Poolable;
 
 public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityModel> {
 
@@ -72,6 +73,24 @@ public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityMo
 		
 		return entityModel;
 	}
+	
+	public void preload(int quantity) throws EntityException {
+		Poolable[] entities = new Poolable[quantity];
+		Poolable[] models = new Poolable[quantity];
+		
+		for (int i = 0; i < quantity; i++) {
+			T2 model = this.createEntityModel();
+			T entity = this.createEntity(model);
+			
+			entities[i] = entity;
+			models[i] = model;
+		}
+		
+		for (int i = 0; i < quantity; i++) {
+			entities[i].release();
+			models[i].release();
+		}
+	}
 
 	////////////////////////
 	// GETTERS/SETTERS
@@ -83,6 +102,14 @@ public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityMo
 
 	public void setEntityType(int entityType) {
 		this.entityType = entityType;
+	}
+
+	public Pool<T> getEntitiesPool() {
+		return entitiesPool;
+	}
+
+	public Pool<T2> getEntityModelsPool() {
+		return entityModelsPool;
 	}
 
 }

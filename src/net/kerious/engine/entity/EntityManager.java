@@ -60,6 +60,7 @@ public class EntityManager {
 	
 	final private Entity createEntity(EntityCreator entityCreator, EntityModel entityModel) throws EntityException {
 		Entity entity = entityCreator.createEntity(entityModel);
+		entity.setEntityManager(this);
 		
 		this.entities.put(entityModel.getId(), entity);
 		

@@ -89,7 +89,7 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 			if (!entity.hasExpired()) {
 				entity.update(deltaTime);
 			} else {
-				this.entities.removeIndex(i);
+				this.entities.removeValue(entity, true);
 				entity.setWorld(null);
 				entity.removedFromWorld();
 			}
@@ -166,5 +166,9 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 
 	public void setListener(WorldListener listener) {
 		this.listener = listener;
+	}
+	
+	public int getEntitiesCount() {
+		return this.entities.size;
 	}
 }

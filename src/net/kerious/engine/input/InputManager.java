@@ -19,5 +19,4 @@ public interface InputManager {
 	KeyboardResponder getKeyboardResponder();
 	void setKeyboardResponder(KeyboardResponder keyboardResponder);
 	
-	
 }
