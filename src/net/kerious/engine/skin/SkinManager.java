@@ -23,7 +23,7 @@ public class SkinManager {
 	final private ObjectMap<String, Skin> skinsByName;
 	final private IntMap<Skin> skinsById;
 	private String directory;
-	private int sequence;
+	private short sequence;
 	private boolean autoAttributeId;
 
 	////////////////////////
@@ -46,7 +46,7 @@ public class SkinManager {
 		throw new SkinException("Load skin failed: Not implemented");
 	}
 	
-	final private void attributeSkinId(Skin skin, int id) {
+	final private void attributeSkinId(Skin skin, short id) {
 		int oldId = skin.getId();
 		
 		if (oldId != id) {
@@ -85,7 +85,7 @@ public class SkinManager {
 		return skin;
 	}
 	
-	public Skin loadSkin(String skinName, int id) throws SkinException {
+	public Skin loadSkin(String skinName, short id) throws SkinException {
 		Skin skin = this.loadSkin(skinName);
 		
 		this.attributeSkinId(skin, id);
@@ -113,7 +113,7 @@ public class SkinManager {
 		return skin;
 	}
 	
-	public int getSkinIdForSkinName(String skinName) throws SkinException {
+	public short getSkinIdForSkinName(String skinName) throws SkinException {
 		Skin skin = this.getSkin(skinName);
 
 		return skin.getId();

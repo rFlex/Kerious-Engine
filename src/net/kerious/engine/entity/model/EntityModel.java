@@ -9,22 +9,25 @@
 
 package net.kerious.engine.entity.model;
 
-import me.corsin.javatools.misc.PoolableImpl;
+import java.nio.ByteBuffer;
 
-public class EntityModel extends PoolableImpl {
+import net.kerious.engine.network.protocol.KeriousProtocol;
+import net.kerious.engine.network.protocol.KeriousSerializableData;
+
+public class EntityModel extends KeriousSerializableData<EntityModel> {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 	
-	private int type;
-	private int parentId;
-	private int id;
-	private int skinId;
-	private float x;
-	private float y;
-	private float width;
-	private float height;
+	public byte type;
+	public int id;
+	public int parentId;
+	public short skinId;
+	public float x;
+	public float y;
+	public float width;
+	public float height;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -40,81 +43,53 @@ public class EntityModel extends PoolableImpl {
 
 	@Override
 	public void reset() {
+		super.reset();
 		this.type = 0;
-		this.parentId = 0;
 		this.id = 0;
+		this.parentId = 0;
 		this.skinId = 0;
 		this.x = 0;
 		this.y = 0;
 		this.width = 0;
 		this.height = 0;
 	}
-	
+
+	@Override
+	public void copyTo(EntityModel object) {
+		object.type = this.type;
+		object.id = this.id;
+		object.parentId = this.parentId;
+		object.skinId = this.skinId;
+		object.x = this.x;
+		object.y = this.y;
+		object.width = this.width;
+		object.height = this.height;
+	}
+
+	@Override
+	public void deserialize(KeriousProtocol protocol, ByteBuffer buffer) {
+		this.id = buffer.getInt();
+		this.parentId = buffer.getInt();
+		this.skinId = buffer.getShort();
+		this.x = buffer.getFloat();
+		this.y = buffer.getFloat();
+		this.width = buffer.getFloat();
+		this.height = buffer.getFloat();
+	}
+
+	@Override
+	public void serialize(KeriousProtocol protocol, ByteBuffer buffer) {
+		buffer.putInt(this.id);
+		buffer.putInt(this.parentId);
+		buffer.putShort(this.skinId);
+		buffer.putFloat(this.x);
+		buffer.putFloat(this.y);
+		buffer.putFloat(this.width);
+		buffer.putFloat(this.height);
+	}
+
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
 	
-	public float getX() {
-		return x;
-	}
-
-	public void setX(float x) {
-		this.x = x;
-	}
-
-	public float getY() {
-		return y;
-	}
-
-	public void setY(float y) {
-		this.y = y;
-	}
-
-	public int getId() {
-		return id;
-	}
-
-	public void setId(int id) {
-		this.id = id;
-	}
-
-	public int getType() {
-		return type;
-	}
-
-	public void setType(int type) {
-		this.type = type;
-	}
-
-	public int getParentId() {
-		return parentId;
-	}
-
-	public void setParentId(int parentId) {
-		this.parentId = parentId;
-	}
-
-	public int getSkinId() {
-		return skinId;
-	}
-
-	public void setSkinId(int skinId) {
-		this.skinId = skinId;
-	}
-
-	public float getWidth() {
-		return width;
-	}
-
-	public void setWidth(float width) {
-		this.width = width;
-	}
-
-	public float getHeight() {
-		return height;
-	}
-
-	public void setHeight(float height) {
-		this.height = height;
-	}
 }

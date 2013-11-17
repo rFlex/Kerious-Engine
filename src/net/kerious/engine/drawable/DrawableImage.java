@@ -9,9 +9,12 @@
 
 package net.kerious.engine.drawable;
 
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
+import net.kerious.engine.KeriousException;
 import net.kerious.engine.renderer.DrawingContext;
+import net.kerious.engine.resource.ResourceManager;
 
 public class DrawableImage implements Drawable {
 
@@ -25,8 +28,15 @@ public class DrawableImage implements Drawable {
 	// CONSTRUCTORS
 	////////////////
 	
-	public DrawableImage() {
-		
+	public DrawableImage(Texture texture) {
+		this.setTextureRegion(new TextureRegion(texture));
+	}
+	
+	public DrawableImage(String fileName) {
+		if (ResourceManager.sharedResourceManager == null) {
+			throw new KeriousException("No shared resource manager was set.");
+		}
+		this.setTextureRegion(new TextureRegion(ResourceManager.sharedResourceManager.<Texture>get(fileName)));
 	}
 
 	////////////////////////

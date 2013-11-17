@@ -11,14 +11,14 @@ package net.kerious.engine.world;
 
 import java.net.SocketException;
 
-import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.Disposable;
-
-import me.corsin.jnetwork.gate.NetworkGate;
-import me.corsin.jnetwork.gate.UDPGate;
 import net.kerious.engine.KeriousEngine;
 import net.kerious.engine.entity.Entity;
+import net.kerious.engine.network.gate.NetworkGate;
+import net.kerious.engine.network.gate.UDPGate;
 import net.kerious.engine.network.protocol.KeriousPeer;
+
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Disposable;
 
 @SuppressWarnings("rawtypes") 
 public class WorldReplicator implements Disposable, WorldListener {

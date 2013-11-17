@@ -9,11 +9,13 @@
 
 package net.kerious.engine;
 
+import com.badlogic.gdx.assets.loaders.FileHandleResolver;
 import com.badlogic.gdx.utils.SnapshotArray;
 
 import net.kerious.engine.console.Console;
 import net.kerious.engine.input.InputManager;
 import net.kerious.engine.renderer.Renderer;
+import net.kerious.engine.resource.ResourceManager;
 import net.kerious.engine.skin.SkinManager;
 import net.kerious.engine.utils.TemporaryUpdatable;
 import net.kerious.engine.view.View;
@@ -34,6 +36,8 @@ public abstract class KeriousEngine implements Disposable {
 	final private InputManager inputManager;
 	final private SnapshotArray<TemporaryUpdatable> updatables;
 	final private SkinManager globalSkinManager;
+	final private FileHandleResolver fileHandleResolver;
+	final private ResourceManager resourceManager;
 	private View keyView;
 	private boolean disposed;
 
@@ -41,7 +45,7 @@ public abstract class KeriousEngine implements Disposable {
 	// CONSTRUCTORS
 	////////////////
 	
-	public KeriousEngine(Renderer renderer, InputManager inputManager, KeriousEngineListener listener) {
+	public KeriousEngine(Renderer renderer, InputManager inputManager, FileHandleResolver fileHandleResolver, KeriousEngineListener listener) {
 		this.listener = listener;
 		this.inputManager = inputManager;
 		this.taskQueue = new TaskQueue();
@@ -49,6 +53,8 @@ public abstract class KeriousEngine implements Disposable {
 		this.updatables = new SnapshotArray<TemporaryUpdatable>(false, 32, TemporaryUpdatable.class);
 		this.globalSkinManager = new SkinManager(true);
 		this.renderer = renderer;
+		this.fileHandleResolver = fileHandleResolver;
+		this.resourceManager = new ResourceManager(this, fileHandleResolver);
 	}
 
 	////////////////////////
@@ -100,6 +106,7 @@ public abstract class KeriousEngine implements Disposable {
 	public void dispose() {
 		this.taskQueue.close();
 		this.renderer.dispose();
+		this.resourceManager.close();
 		this.disposed = true;
 	}
 
@@ -142,5 +149,13 @@ public abstract class KeriousEngine implements Disposable {
 	
 	public SkinManager getGlobalSkinManager() {
 		return this.globalSkinManager;
+	}
+
+	public FileHandleResolver getFileHandleResolver() {
+		return fileHandleResolver;
+	}
+
+	public ResourceManager getResourceManager() {
+		return resourceManager;
 	}
 }

@@ -23,9 +23,6 @@ public interface DrawingContext extends Closeable {
 	void fillRectangle(TextureRegion textureRegion, float x, float y, float width, float height,
 			float alpha, float rotation);
 	
-	void startDrawing();
-	void endDrawing();
-	
 	void limitRenderingBounds(Rectangle renderingBounds);
 	void unlimitRenderingBounds();
 	

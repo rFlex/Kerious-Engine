@@ -32,6 +32,8 @@ public class LibgdxDrawingContext implements DrawingContext {
 	final private Matrix4 projectionMatrix;
 	
 	private Projection projection;
+	private boolean spriteBatchDrawing;
+	private boolean shapeRendererDrawing;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -48,19 +50,14 @@ public class LibgdxDrawingContext implements DrawingContext {
 	////////////////////////
 	// METHODS
 	////////////////
-	
-	@Override
-	public void startDrawing() {
-		this.spriteBatch.begin();
-	}
-
-	@Override
-	public void endDrawing() {
-		this.spriteBatch.end();
-	}
 
 	@Override
 	public void fillRectangle(Color color, float x, float y, float width, float height, float rotation) {
+		if (this.spriteBatchDrawing) {
+			this.spriteBatchDrawing = false;
+			this.spriteBatch.end();
+		}
+		
 		this.shapeRenderer.begin(ShapeType.Filled);
 		this.shapeRenderer.setColor(color);
 		this.shapeRenderer.rect(x, y, width, height, width / 2, height / 2, rotation);
@@ -84,6 +81,16 @@ public class LibgdxDrawingContext implements DrawingContext {
 	
 	@Override
 	public void fillRectangle(TextureRegion textureRegion, float x, float y, float width, float height, float alpha, float rotation) {
+		if (this.shapeRendererDrawing) {
+			this.shapeRendererDrawing = false;
+			this.shapeRenderer.end();
+		}
+		
+		if (!this.spriteBatchDrawing) {
+			this.spriteBatchDrawing = true;
+			this.spriteBatch.begin();
+		}
+		
 		this.spriteBatch.draw(textureRegion, x, y, 0, 0, width, height, 1, 1, rotation);
 	}
 	

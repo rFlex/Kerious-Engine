@@ -1,29 +1,28 @@
 /////////////////////////////////////////////////
 // Project : Kerious Engine
-// Package : net.kerious.engine.network.protocol
-// KeriousPeer.java
+// Package : net.kerious.engine.resource
+// ResourceData.java
 //
 // Author : Simon CORSIN <simoncorsin@gmail.com>
-// File created on Nov 13, 2013 at 8:17:40 PM
+// File created on Nov 17, 2013 at 12:15:31 PM
 ////////
 
-package net.kerious.engine.network.protocol;
+package net.kerious.engine.resource;
 
-import net.kerious.engine.network.peer.NetworkPeer;
-
-public class KeriousPeer extends NetworkPeer {
+@SuppressWarnings("rawtypes")
+public class ResourceInfo {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
+	
+	public Class resourceType;
+	public String fileName;
+	public boolean loaded;
 
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
-	
-	public KeriousPeer(NetworkPeer networkPeer) {
-		super(networkPeer);
-	}
 
 	////////////////////////
 	// METHODS

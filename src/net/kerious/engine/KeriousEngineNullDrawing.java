@@ -26,7 +26,7 @@ public class KeriousEngineNullDrawing extends KeriousEngine {
 	////////////////
 	
 	public KeriousEngineNullDrawing(KeriousEngineListener listener) {
-		super(new NullRenderer(), null, listener);
+		super(new NullRenderer(), null, null, listener);
 
 		this.initCommands();
 	}

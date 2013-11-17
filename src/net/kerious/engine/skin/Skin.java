@@ -19,7 +19,7 @@ public abstract class Skin {
 	////////////////
 
 	final private Pool<View> viewPool;
-	private int id;
+	private short id;
 	
 	////////////////////////
 	// CONSTRUCTORS
@@ -54,11 +54,11 @@ public abstract class Skin {
 	// GETTERS/SETTERS
 	////////////////
 	
-	public int getId() {
+	public short getId() {
 		return id;
 	}
 
-	public void setId(int id) {
+	public void setId(short id) {
 		this.id = id;
 	}
 }

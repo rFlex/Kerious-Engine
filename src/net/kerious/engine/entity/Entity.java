@@ -55,7 +55,7 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	/**
 	 * Called when the Entity has just been created and a model has been set for the first time
 	 */
-	public void buildFromModel() {
+	public void initialize() {
 		// Build entity from the set model
 	}
 	
@@ -89,8 +89,8 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	}
 	
 	protected void updateView(ViewType view, EntityModelType model) {
-		view.setFrame(model.getX(), model.getY(), model.getWidth(), model.getHeight());
-		view.setPosition(model.getX(), model.getY());
+		view.setFrame(model.x, model.y, model.width, model.height);
+		view.setPosition(model.x, model.y);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -117,7 +117,7 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 		if (model != null) {
 			if (this.world != null) {
 				if (this.world.isRenderingEnabled()) {
-					int skinId = this.model.getSkinId();
+					int skinId = this.model.skinId;
 					// Skin has changed
 					if (this.currentSkinId != skinId) {
 						this.currentSkinId = skinId;
@@ -138,7 +138,7 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 		int parentId = 0;
 		
 		if (model != null) {
-			parentId = model.getParentId();
+			parentId = model.parentId;
 		}
 		
 		EntityModel parentModel = this.parentEntity != null ? this.parentEntity.getModel() : null;
@@ -146,7 +146,7 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 		if (parentId == 0 || parentModel == null) {
 			this.setParentEntity(null);
 		} else {
-			if (parentModel.getId() != parentId) {
+			if (parentModel.id != parentId) {
 				this.setParentEntity(this.entityManager.getEntity(parentId));
 			}
 		}
@@ -154,6 +154,7 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	
 	/**
 	 * Signal to the entity that the model has changed
+	 * This method needs to be called everytime the model is changed
 	 */
 	public void modelChanged() {
 		EntityModelType model = this.model;
@@ -227,8 +228,8 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	public void setSkin(String skinName) {
 		if (this.world != null) {
 			try {
-				int skinId = this.world.getSkinManager().getSkinIdForSkinName(skinName);
-				this.getModel().setSkinId(skinId);
+				short skinId = this.world.getSkinManager().getSkinIdForSkinName(skinName);
+				this.getModel().skinId = skinId;
 				this.modelChanged();
 			} catch (SkinException e) {
 				this.world.getEngine().getConsole().print("ERROR: Unable to set skin: " + e.getMessage());
@@ -248,8 +249,8 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	 * @param y
 	 */
 	public void setPosition(float x, float y) {
-		this.model.setX(x);
-		this.model.setY(y);
+		this.model.x = x;
+		this.model.y = y;
 		
 		this.modelChanged();
 	}

@@ -21,7 +21,7 @@ public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityMo
 	
 	final private Pool<T> entitiesPool;
 	final private Pool<T2> entityModelsPool;
-	private int entityType;
+	private byte entityType;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -57,7 +57,7 @@ public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityMo
 		}
 		
 		entity.setModel(entityModel);
-		entity.buildFromModel();
+		entity.initialize();
 		
 		return entity;
 	}
@@ -69,7 +69,7 @@ public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityMo
 			throw new EntityException(this.entityType, "No entity model was created from the EntityCreator");
 		}
 		
-		entityModel.setType(this.entityType);
+		entityModel.type = this.entityType;
 		
 		return entityModel;
 	}
@@ -96,11 +96,11 @@ public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityMo
 	// GETTERS/SETTERS
 	////////////////
 	
-	public int getEntityType() {
+	public byte getEntityType() {
 		return entityType;
 	}
 
-	public void setEntityType(int entityType) {
+	public void setEntityType(byte entityType) {
 		this.entityType = entityType;
 	}
 

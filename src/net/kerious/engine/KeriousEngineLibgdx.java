@@ -11,10 +11,12 @@ package net.kerious.engine;
 
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
 
 import me.corsin.javatools.reflect.ReflectionUtils;
 import net.kerious.engine.input.LibgdxInputManager;
 import net.kerious.engine.renderer.LibgdxRenderer;
+import net.kerious.engine.resource.ResourceManager;
 
 public class KeriousEngineLibgdx extends KeriousEngine implements ApplicationListener {
 
@@ -28,7 +30,8 @@ public class KeriousEngineLibgdx extends KeriousEngine implements ApplicationLis
 	////////////////
 
 	public KeriousEngineLibgdx(KeriousEngineListener listener) {
-		super(new LibgdxRenderer(), new LibgdxInputManager(), listener);
+		super(new LibgdxRenderer(), new LibgdxInputManager(), new InternalFileHandleResolver(), listener);
+		ResourceManager.sharedResourceManager = this.getResourceManager();
 	}
 
 	////////////////////////

@@ -38,12 +38,16 @@ public class EntityManager {
 	// METHODS
 	////////////////
 
+	public void preload(int entityType, int quantity) throws EntityException {
+		this.getEntityCreator(entityType).preload(quantity);
+	}
+	
 	public void registerEntity(int entityType, Class<?> entityClass, Class<?> entityModelClass) {
 		this.registerEntity(entityType, new ReflectionEntityCreator(entityClass, entityModelClass));
 	}
 	
 	public void registerEntity(int entityType, EntityCreator entityCreator) {
-		entityCreator.setEntityType(entityType);
+		entityCreator.setEntityType((byte)entityType);
 		
 		this.entityCreators.put(entityType, entityCreator);
 	}
@@ -62,7 +66,7 @@ public class EntityManager {
 		Entity entity = entityCreator.createEntity(entityModel);
 		entity.setEntityManager(this);
 		
-		this.entities.put(entityModel.getId(), entity);
+		this.entities.put(entityModel.id, entity);
 		
 		if (this.listener != null) {
 			this.listener.onEntityCreated(entity);
@@ -75,7 +79,7 @@ public class EntityManager {
 		EntityCreator entityCreator = this.getEntityCreator(entityType);
 		
 		EntityModel entityModel = entityCreator.createEntityModel();
-		entityModel.setId(this.sequence++);
+		entityModel.id = this.sequence++;
 		
 		return this.createEntity(entityCreator, entityModel);
 	}
@@ -85,7 +89,7 @@ public class EntityManager {
 			throw new IllegalArgumentException("entityModel may not be null");
 		}
 		
-		int entityType = entityModel.getType();
+		int entityType = entityModel.type;
 		
 		EntityCreator entityCreator = this.getEntityCreator(entityType);
 		
@@ -103,7 +107,7 @@ public class EntityManager {
 			throw new IllegalArgumentException("the entity doesn't have any model");
 		}
 		
-		int entityId = model.getId();
+		int entityId = model.id;
 		
 		this.entities.remove(entityId);
 		
