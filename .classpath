@@ -2,7 +2,7 @@
 <classpath>
 	<classpathentry excluding="com/kerious/framework/|com/kerious/framework/actions/|com/kerious/framework/client/|com/kerious/framework/client/interpolate/|com/kerious/framework/collisions/|com/kerious/framework/console/|com/kerious/framework/drawable/|com/kerious/framework/events/|com/kerious/framework/exceptions/|com/kerious/framework/kcommand/|com/kerious/framework/library/|com/kerious/framework/network/|com/kerious/framework/network/protocol/|com/kerious/framework/network/protocol/packets/|com/kerious/framework/network/protocol/tools/|com/kerious/framework/network/tools/|com/kerious/framework/server/|com/kerious/framework/utils/|com/kerious/framework/utils/path/|com/kerious/framework/utils/tasks/|com/kerious/framework/world/|com/kerious/framework/world/CollisionBlock.java|com/kerious/framework/world/GameMap.java|com/kerious/framework/world/GameWorld.java|com/kerious/framework/world/NonDrawableStageGroup.java|com/kerious/framework/world/StageGroup.java|com/kerious/framework/world/TrackingCamera.java|com/kerious/framework/world/entities/|com/kerious/framework/world/tmx/" kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-	<classpathentry kind="src" path="/SCJavaTools"/>
-	<classpathentry kind="lib" path="/Users/simoncorsin/Projects/Kerious-Engine/libs/gdx.jar" sourcepath="/Users/simoncorsin/Downloads/libgdx-0.9.9/sources/gdx-sources.jar"/>
+	<classpathentry exported="true" kind="src" path="/SCJavaTools"/>
+	<classpathentry exported="true" kind="lib" path="libs/gdx.jar" sourcepath="libs/gdx-sources.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
