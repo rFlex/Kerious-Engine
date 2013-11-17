@@ -7,9 +7,12 @@
 // File created on Nov 17, 2013 at 2:23:16 PM
 ////////
 
-package net.kerious.engine.network.protocol;
+package net.kerious.engine.network.protocol.packet;
 
 import java.nio.ByteBuffer;
+
+import net.kerious.engine.network.protocol.KeriousProtocol;
+import net.kerious.engine.network.protocol.KeriousSerializableData;
 
 import com.badlogic.gdx.utils.Array;
 

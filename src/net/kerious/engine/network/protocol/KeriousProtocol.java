@@ -9,31 +9,32 @@
 
 package net.kerious.engine.network.protocol;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 
-import me.corsin.javatools.io.IOUtils;
 import me.corsin.javatools.misc.Pool;
 import net.kerious.engine.KeriousException;
 import net.kerious.engine.entity.EntityException;
 import net.kerious.engine.entity.EntityManager;
 import net.kerious.engine.entity.model.EntityModel;
+import net.kerious.engine.network.protocol.packet.ConnectionPacket;
+import net.kerious.engine.network.protocol.packet.KeriousPacket;
+import net.kerious.engine.network.protocol.packet.SnapshotPacket;
 
-import com.badlogic.gdx.utils.IntMap;
-import com.badlogic.gdx.utils.ObjectMap;
-
-@SuppressWarnings("rawtypes")
 public class KeriousProtocol implements INetworkProtocol {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 	
+	public static final int INFORMATION_TYPE = 1;
+	public static final int CONNECTION_TYPE = 2;
+	public static final int PLAYER_COMMAND_TYPE = 3;
+	public static final int SNAPSHOT_TYPE = 10;
+	
 	private EntityManager entityManager;
-	private IntMap<Pool> objectPoolsByType;
-	private ObjectMap<Class, Pool> objectPoolsByClass;
+	private Pool<SnapshotPacket> snapshotPackets;
+	private Pool<ConnectionPacket> connectionPackets;
 	private Pool<KeriousPacket> packets;
 
 	////////////////////////
@@ -41,47 +42,43 @@ public class KeriousProtocol implements INetworkProtocol {
 	////////////////
 	
 	public KeriousProtocol() {
-		this.packets = new Pool<KeriousPacket>() {
-			@Override
-			protected KeriousPacket instantiate() {
-				return new KeriousPacket();
-			}
-		};
+		this.initPackets();
 	}
 
 	////////////////////////
 	// METHODS
 	////////////////
 	
-	@SuppressWarnings("unchecked")
-	final private <T> T createPacket(Pool pool) {
-		Object packet = pool.obtain();
+	private void initPackets() {
+		this.packets = new Pool<KeriousPacket>() {
+			protected KeriousPacket instantiate() {
+				return new KeriousPacket();
+			}
+		};
 		
-		if (packet == null) {
-			throw new KeriousException("No packet was created from the pool");
-		}
-		
-		return (T)packet;
+		this.snapshotPackets = new Pool<SnapshotPacket>() {
+			protected SnapshotPacket instantiate() {
+				return new SnapshotPacket();
+			}
+		};
+		this.connectionPackets = new Pool<ConnectionPacket>() {
+			protected ConnectionPacket instantiate() {
+				return new ConnectionPacket();
+			}
+		};
 	}
 	
-	public <T> T createPacket(Class<T> packetClass) {
-		Pool pool = this.objectPoolsByClass.get(packetClass);
-		
-		if (pool == null) {
-			throw new KeriousException("Packet class " + packetClass.getSimpleName() + " is not registered");
-		}
-		
-		return this.createPacket(pool);
-	}
-
+	@SuppressWarnings("unchecked")
 	public <T> T createPacket(int packetType) {
-		Pool pool = this.objectPoolsByType.get(packetType);
 		
-		if (pool == null) {
-			throw new KeriousException("Packet type " + packetType + " is not registered");
+		switch (packetType) {
+		case CONNECTION_TYPE:
+			return (T)this.connectionPackets.obtain();
+		case SNAPSHOT_TYPE:
+			return (T)this.snapshotPackets.obtain();
 		}
 		
-		return this.createPacket(pool);
+		throw new KeriousException("Packet type " + packetType + " is not recognized");
 	}
 	
 	final public KeriousPacket createKeriousPacket() {
@@ -101,24 +98,36 @@ public class KeriousProtocol implements INetworkProtocol {
 	}
 	
 	@Override
-	public Object deserialize(InputStream inputStream) throws IOException {
-		ByteBuffer byteBuffer = ByteBuffer.wrap(IOUtils.readStream(inputStream));
-		
-		KeriousPacket packet = this.createKeriousPacket();
-		packet.deserialize(this, byteBuffer);
-		
-		return packet;
+	public Object deserialize(ByteBuffer byteBuffer) throws IOException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
-	public InputStream serialize(Object object){
-		KeriousPacket packet = (KeriousPacket)object;
-		ByteBuffer byteBuffer = ByteBuffer.allocate(2048);
+	public void serialize(Object object, ByteBuffer byteBuffer) {
+		// TODO Auto-generated method stub
 		
-		packet.serialize(this, byteBuffer);
-		
-		return new ByteArrayInputStream(byteBuffer.array(), 0, byteBuffer.position());
 	}
+	
+//	@Override
+//	public Object deserialize(InputStream inputStream) throws IOException {
+//		ByteBuffer byteBuffer = ByteBuffer.wrap(IOUtils.readStream(inputStream));
+//		
+//		KeriousPacket packet = this.createKeriousPacket();
+//		packet.deserialize(this, byteBuffer);
+//		
+//		return packet;
+//	}
+//
+//	@Override
+//	public InputStream serialize(Object object){
+//		KeriousPacket packet = (KeriousPacket)object;
+//		ByteBuffer byteBuffer = ByteBuffer.allocate(2048);
+//		
+//		packet.serialize(this, byteBuffer);
+//		
+//		return new ByteArrayInputStream(byteBuffer.array(), 0, byteBuffer.position());
+//	}
 
 	////////////////////////
 	// GETTERS/SETTERS

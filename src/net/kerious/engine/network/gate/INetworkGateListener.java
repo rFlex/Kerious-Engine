@@ -9,13 +9,13 @@
 
 package net.kerious.engine.network.gate;
 
-import net.kerious.engine.network.peer.NetworkPeer;
+import java.net.InetAddress;
 
 public interface INetworkGateListener {
 
-	void onReceived(NetworkPeer peer, Object packet);
-	void onSent(NetworkPeer peer, Object packet);
-	void onFailedSend(NetworkPeer peer, Object packet, Exception exception);
-	void onFailedReceive(NetworkPeer peer, Exception exception);
+	void onReceived(InetAddress address, int port, Object packet);
+	void onSent(InetAddress address, int port, Object packet);
+	void onFailedSend(InetAddress address, int port, Object packet, Exception exception);
+	void onFailedReceive(InetAddress address, int port, Exception exception);
 	
 }

@@ -1,17 +1,17 @@
 /////////////////////////////////////////////////
 // Project : Kerious Engine
-// Package : net.kerious.engine.network.protocol
-// KeriousPeer.java
+// Package : net.kerious.engine.network.gate
+// SendTask.java
 //
 // Author : Simon CORSIN <simoncorsin@gmail.com>
-// File created on Nov 13, 2013 at 8:17:40 PM
+// File created on Nov 17, 2013 at 8:18:15 PM
 ////////
 
-package net.kerious.engine.network.protocol;
+package net.kerious.engine.network.gate;
 
-import net.kerious.engine.network.peer.NetworkPeer;
+import me.corsin.javatools.task.SimpleTask;
 
-public class KeriousPeer extends NetworkPeer {
+public class SendTask extends SimpleTask {
 
 	////////////////////////
 	// VARIABLES
@@ -20,14 +20,15 @@ public class KeriousPeer extends NetworkPeer {
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
-	
-	public KeriousPeer(NetworkPeer networkPeer) {
-		super(networkPeer);
-	}
 
 	////////////////////////
 	// METHODS
 	////////////////
+	
+	@Override
+	protected void perform() throws Throwable {
+		
+	}
 
 	////////////////////////
 	// GETTERS/SETTERS

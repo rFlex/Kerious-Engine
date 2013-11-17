@@ -11,10 +11,11 @@ package net.kerious.engine.network.peer;
 
 import java.net.InetSocketAddress;
 
+import me.corsin.javatools.misc.PoolableImpl;
 import net.kerious.engine.network.gate.NetworkGate;
 import net.kerious.engine.network.gate.NetworkPeerException;
 
-public class NetworkPeer {
+public class NetworkPeer extends PoolableImpl {
 
 	////////////////////////
 	// VARIABLES
@@ -33,7 +34,6 @@ public class NetworkPeer {
 	public NetworkPeer(NetworkPeer networkPeer) {
 		this(networkPeer.address, networkPeer.gate);
 	}
-
 	
 	public NetworkPeer(String ip, int port) {
 		this(ip, port, null);
@@ -64,7 +64,7 @@ public class NetworkPeer {
 		if (this.gate == null) {
 			throw new NetworkPeerException("Cannot send a packet to a NetworkPeer that is not registered to a NetworkGate");
 		}
-		this.gate.send(packet, this);
+		this.gate.send(packet, this.address.getAddress(), this.address.getPort());
 	}
 	
 	public static int computeHashCodeForAddress(InetSocketAddress address) {

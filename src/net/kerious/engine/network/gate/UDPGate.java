@@ -14,8 +14,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.nio.ByteBuffer;
 
 import me.corsin.javatools.io.IOUtils;
 import net.kerious.engine.network.protocol.INetworkProtocol;
@@ -27,6 +29,7 @@ public class UDPGate extends NetworkGate {
 	////////////////
 	
 	private DatagramSocket socket;
+	private DatagramPacket sendPacket;
 	private DatagramPacket receivePacket;
 	private byte[] buffer;
 
@@ -60,6 +63,7 @@ public class UDPGate extends NetworkGate {
 		
 		this.buffer = new byte[65536];
 		this.receivePacket = new DatagramPacket(this.buffer, this.buffer.length);
+		this.sendPacket = new DatagramPacket(new byte[1], 1);
 	}
 
 	////////////////////////
@@ -67,25 +71,24 @@ public class UDPGate extends NetworkGate {
 	////////////////
 
 	@Override
-	protected ReadPacket readNextPacket() throws IOException {
-		ReadPacket packet = null;
+	protected void readNextPacket(ReadPacket readPacket) throws IOException {
 		this.socket.receive(receivePacket);
 		
-		InetSocketAddress address = new InetSocketAddress(this.receivePacket.getAddress(), this.receivePacket.getPort());
 		InputStream stream = new ByteArrayInputStream(this.buffer, 0, this.receivePacket.getLength());
-		
-		packet = new ReadPacket(address, stream);
-		
-		return packet;
+
+		readPacket.inputStream = stream;
+		readPacket.inetAddress = this.receivePacket.getAddress();
+		readPacket.port = this.receivePacket.getPort();
 	}
 
 	@Override
-	protected void sendPacket(InputStream inputStream, InetSocketAddress socketAddress) {
+	protected void sendPacket(ByteBuffer byteBuffer, int size, InetAddress address, int port) {
 		try {
-			byte[] data = IOUtils.readStream(inputStream);
-			DatagramPacket packet = new DatagramPacket(data, 0, data.length, socketAddress);
+			this.sendPacket.setData(byteBuffer.array(), 0, size);
+			this.sendPacket.setAddress(address);
+			this.sendPacket.setPort(port);
 			
-			this.socket.send(packet);
+			this.socket.send(this.sendPacket);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

@@ -10,11 +10,11 @@
 package net.kerious.engine.network.protocol;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.ByteBuffer;
 
 public interface INetworkProtocol {
 
-	Object deserialize(InputStream stream) throws IOException;
-	InputStream serialize(Object object);
+	Object deserialize(ByteBuffer byteBuffer) throws IOException;
+	void serialize(Object object, ByteBuffer byteBuffer);
 	
 }

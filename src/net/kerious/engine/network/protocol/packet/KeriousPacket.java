@@ -7,10 +7,13 @@
 // File created on Nov 16, 2013 at 11:46:34 PM
 ////////
 
-package net.kerious.engine.network.protocol;
+package net.kerious.engine.network.protocol.packet;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+
+import net.kerious.engine.network.protocol.KeriousProtocol;
+import net.kerious.engine.network.protocol.KeriousSerializableData;
 
 @SuppressWarnings("rawtypes")
 public class KeriousPacket extends KeriousSerializableData<KeriousPacket> {

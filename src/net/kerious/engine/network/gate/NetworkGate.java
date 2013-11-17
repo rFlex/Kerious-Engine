@@ -11,15 +11,14 @@ package net.kerious.engine.network.gate;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.Map;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 
+import me.corsin.javatools.misc.SynchronizedPool;
 import me.corsin.javatools.task.MultiThreadedTaskQueue;
 import me.corsin.javatools.task.SimpleTask;
 import me.corsin.javatools.task.TaskQueue;
-import net.kerious.engine.network.peer.NetworkPeer;
 import net.kerious.engine.network.protocol.INetworkProtocol;
 import net.kerious.engine.network.protocol.VoidProtocol;
 
@@ -29,12 +28,13 @@ public abstract class NetworkGate implements Closeable {
 	// VARIABLES
 	////////////////
 	
-	final private Map<Integer, NetworkPeer> peers;
 	final private TaskQueue queues;
+	final private SynchronizedPool<ByteBuffer> buffers;
 	private INetworkProtocol protocol;
 	private boolean closed;
 	private TaskQueue callBackTaskQueue;
 	private INetworkGateListener listener;
+	private int maxPacketSize;
 	
 	////////////////////////
 	// CONSTRUCTORS
@@ -45,8 +45,14 @@ public abstract class NetworkGate implements Closeable {
 	}
 	
 	public NetworkGate(INetworkProtocol protocol) {
-		this.peers = new HashMap<Integer, NetworkPeer>();
 		this.queues = new MultiThreadedTaskQueue(2);
+		this.buffers = new SynchronizedPool<ByteBuffer>() {
+			@Override
+			protected ByteBuffer instantiate() {
+				return ByteBuffer.allocate(getMaxPacketSize());
+			}
+		};
+		
 		this.setProtocol(protocol);
 		
 		this.queues.executeAsync(new Runnable() {
@@ -54,30 +60,33 @@ public abstract class NetworkGate implements Closeable {
 				beginRead();
 			}
 		});
+		this.maxPacketSize = 8192;
 	}
 
 	////////////////////////
 	// METHODS
 	////////////////
 
-	protected abstract ReadPacket readNextPacket() throws IOException;
-	protected abstract void sendPacket(InputStream inputStream, InetSocketAddress socketAddress) throws IOException;
+	public void update() {
+		
+	}
+	
+	protected abstract void readNextPacket(ReadPacket outputPacket) throws IOException;
+	protected abstract void sendPacket(ByteBuffer buffer, int size, InetAddress address, int port) throws IOException;
 	
 	private void beginRead() {
+		ReadPacket readPacket = new ReadPacket();
 		while (!this.closed) {
 			Exception exception = null;
 			Object deserializedPacket = null;
-			NetworkPeer peer = null;
 			try {
-				final ReadPacket packet = this.readNextPacket();
-				if (packet == null) {
-					throw new NetworkGateException("The NetworkGate did not return a packet");
-				}
+				this.readNextPacket(readPacket);
 				
-				peer = this.getPeerForAddress(packet.getSocketAddress());
-				deserializedPacket = this.getProtocol().deserialize(packet.getInputStream());
-				if (deserializedPacket == null) {
-					throw new NetworkGateException("The protocol did not deserialize the packet");
+				if (readPacket.inputStream != null) {
+//					deserializedPacket = this.getProtocol().deserialize(readPacket.inputStream);
+					if (deserializedPacket == null) {
+						throw new NetworkGateException("The protocol did not deserialize the packet");
+					}
 				}
 				
 			} catch (Exception e) {
@@ -90,39 +99,23 @@ public abstract class NetworkGate implements Closeable {
 			
 			final Exception thrownException = exception;
 			final Object object = deserializedPacket;
-			final NetworkPeer thePeer = peer;
-			
-			if (thePeer != null) {
-				this.executeOnAskedQueue(new Runnable() {
-					public void run() {
-						thePeer.signalReceived(object, thrownException);
-					}
-				});
-			}
+			final InetAddress inetAddress = readPacket.inetAddress;
+			final int port = readPacket.port;
+
 			this.executeOnAskedQueue(new Runnable() {
 				public void run() {
 					if (listener != null) {
 						if (thrownException == null) {
-							listener.onReceived(thePeer, object);
+							listener.onReceived(inetAddress, port, object);
 						} else {
-							listener.onFailedReceive(thePeer, thrownException);
+							listener.onFailedReceive(inetAddress, port, thrownException);
 						}
 					}
 				}
 			});
 		}
 	}
-	
-	private void write(final NetworkPeer peer, final Object packet) throws Exception {
-		InputStream inputStream = this.getProtocol().serialize(packet);
 
-		if (inputStream != null) {
-			this.sendPacket(inputStream, peer.getAddress());
-		} else {
-			throw new NetworkGateException("The protocol did not serialize the packet");
-		}
-	}
-	
 	private void executeOnAskedQueue(Runnable runnable) {
 		if (this.callBackTaskQueue != null) {
 			this.callBackTaskQueue.executeAsync(runnable);
@@ -132,20 +125,21 @@ public abstract class NetworkGate implements Closeable {
 	}
 	
 	public void send(Object packet, String ip, int port) {
-		this.send(packet, InetSocketAddress.createUnresolved(ip, port));
+		try {
+			this.send(packet, InetAddress.getByName(ip), port);
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
 	}
 	
-	public void send(Object packet, InetSocketAddress remoteAddress) {
-		this.send(packet, this.getPeerForAddress(remoteAddress));
-	}
-	
-	public void send(Object packet, NetworkPeer peer) {
+	public void send(Object packet, InetAddress address, int port) {
+		final InetAddress finalAddress = address;
+		final int finalPort = port;
 		final Object thePacket = packet;
-		final NetworkPeer thePeer = peer;
 		
 		Runnable writeTask = new SimpleTask() {
 			protected void perform() throws Throwable {
-				write(thePeer, thePacket);
+//				write(finalAddress, finalPort, thePacket);
 			}
 		}.setListener(new SimpleTask.TaskListener() {
 			public void onCompleted(Object taskCreator, final SimpleTask task) {
@@ -153,12 +147,11 @@ public abstract class NetworkGate implements Closeable {
 					public void run() {
 						if (listener != null) {
 							if (task.getThrownException() == null) {
-								listener.onSent(thePeer, thePacket);
+								listener.onSent(finalAddress, finalPort, thePacket);
 							} else {
-								listener.onFailedSend(thePeer, thePacket, (Exception)task.getThrownException());
+								listener.onFailedSend(finalAddress, finalPort, thePacket, (Exception)task.getThrownException());
 							}
 						}
-						thePeer.signalSent(thePacket, (Exception)task.getThrownException());
 					}
 				});
 			}
@@ -167,54 +160,15 @@ public abstract class NetworkGate implements Closeable {
 		this.queues.executeAsync(writeTask);
 	}
 	
-	public void sendToAllRegisteredPeer(Object packet) {
-		for (NetworkPeer peer : this.peers.values()) {
-			this.send(packet, peer);
-		}
-	}
-	
-	/**
-	 * Unregister the NetworkPeer from the gate. Every new packet that comes from the IP and port represented by this peer
-	 * will result in a new NetworkPeer being allocated
-	 * @param peer
-	 * @return
-	 */
-	public boolean unregister(NetworkPeer peer) {
-		peer.setGate(null);
-		return this.peers.remove(peer.hashCode()) != null;
-	}
-	
-	public boolean isRegistered(NetworkPeer peer) {
-		return this.peers.containsKey(peer.hashCode());
-	}
-	
-	/**
-	 * Register the NetworkPeer to the gate. If another packet comes from the IP and port represented by this peer, this peer object will be reused
-	 * instead of allocating a new one
-	 * @param peer
-	 */
-	public void register(NetworkPeer peer) {
-		if (!peer.isRegisterable()) {
-			throw new NetworkGateException("The NetworkPeer is currently not registerable.");
-		}
-		this.peers.put(peer.hashCode(), peer);
-		peer.setGate(this);
-	}
-	
+//	private void send(ByteBuffer buffer, InetAddress address, int port) {
+//		int size = buffer.position();
+//		
+//	}
+//		
 	@Override
 	public void close() {
 		this.closed = true;
 		this.queues.close();
-	}
-	
-	public NetworkPeer getPeerForAddress(InetSocketAddress socketAddress) {
-		NetworkPeer peer = this.peers.get(NetworkPeer.computeHashCodeForAddress(socketAddress));
-		
-		if (peer == null) {
-			peer = new NetworkPeer(socketAddress, this);
-		}
-		
-		return peer;
 	}
 	
 	////////////////////////
@@ -251,5 +205,13 @@ public abstract class NetworkGate implements Closeable {
 
 	public void setListener(INetworkGateListener listener) {
 		this.listener = listener;
+	}
+
+	public int getMaxPacketSize() {
+		return maxPacketSize;
+	}
+
+	public void setMaxPacketSize(int maxPacketSize) {
+		this.maxPacketSize = maxPacketSize;
 	}
 }

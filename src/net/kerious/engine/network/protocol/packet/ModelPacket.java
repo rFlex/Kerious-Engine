@@ -7,11 +7,13 @@
 // File created on Nov 17, 2013 at 2:32:14 PM
 ////////
 
-package net.kerious.engine.network.protocol;
+package net.kerious.engine.network.protocol.packet;
 
 import java.nio.ByteBuffer;
 
 import net.kerious.engine.entity.model.EntityModel;
+import net.kerious.engine.network.protocol.KeriousProtocol;
+import net.kerious.engine.network.protocol.KeriousSerializableData;
 
 public class ModelPacket extends KeriousSerializableData<ModelPacket> {
 

@@ -15,7 +15,7 @@ import net.kerious.engine.KeriousEngine;
 import net.kerious.engine.entity.Entity;
 import net.kerious.engine.network.gate.NetworkGate;
 import net.kerious.engine.network.gate.UDPGate;
-import net.kerious.engine.network.protocol.KeriousPeer;
+import net.kerious.engine.network.protocol.KeriousProtocolPeer;
 
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
@@ -28,7 +28,7 @@ public class WorldReplicator implements Disposable, WorldListener {
 	////////////////
 	
 	private NetworkGate gate;
-	final private Array<KeriousPeer> peers;
+	final private Array<KeriousProtocolPeer> peers;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -50,29 +50,27 @@ public class WorldReplicator implements Disposable, WorldListener {
 			engine.getConsole().print("ERROR: Unable to create gate for WorldReplicator: " + e.getMessage());
 		}
 		
-		this.peers = new Array<KeriousPeer>(false, 32, KeriousPeer.class);
+		this.peers = new Array<KeriousProtocolPeer>(false, 32, KeriousProtocolPeer.class);
 	}
 
 	////////////////////////
 	// METHODS
 	////////////////
 
-	public void addPeer(KeriousPeer peer) {
+	public void addPeer(KeriousProtocolPeer peer) {
 		if (peer == null) {
 			throw new IllegalArgumentException("peer may not be null");
 		}
 		this.peers.add(peer);
 		
 		if (this.gate != null) {
-			this.gate.register(peer);
 		}
 	}
 	
-	public void removePeer(KeriousPeer peer) {
+	public void removePeer(KeriousProtocolPeer peer) {
 		this.peers.removeValue(peer, true);
 		
 		if (this.gate != null) {
-			this.gate.unregister(peer);
 		}
 	}
 	

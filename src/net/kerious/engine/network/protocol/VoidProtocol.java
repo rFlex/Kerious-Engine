@@ -9,11 +9,8 @@
 
 package net.kerious.engine.network.protocol;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-
-import me.corsin.javatools.io.IOUtils;
+import java.nio.ByteBuffer;
 
 public class VoidProtocol implements INetworkProtocol {
 
@@ -28,25 +25,17 @@ public class VoidProtocol implements INetworkProtocol {
 	////////////////////////
 	// METHODS
 	////////////////
-	
+
 	@Override
-	public Object deserialize(InputStream inputStream) throws IOException {
-		return IOUtils.readStream(inputStream);
+	public Object deserialize(ByteBuffer byteBuffer) throws IOException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
-	public InputStream serialize(Object object) {
-		if (object instanceof InputStream) {
-			return (InputStream)object;
-		}
-		if (object instanceof byte[]) {
-			return new ByteArrayInputStream((byte[])object);
-		}
-		if (object instanceof String) {
-			return new ByteArrayInputStream(((String)object).getBytes());
-		}
+	public void serialize(Object object, ByteBuffer byteBuffer) {
+		// TODO Auto-generated method stub
 		
-		return null;
 	}
 
 	////////////////////////

@@ -10,24 +10,23 @@
 package net.kerious.engine.network.gate;
 
 import java.io.InputStream;
-import java.net.InetSocketAddress;
+import java.net.InetAddress;
 
 public class ReadPacket {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
-	
-	final private InetSocketAddress socketAddress;
-	final private InputStream inputStream;
+
+	public InetAddress inetAddress;
+	public int port;
+	public InputStream inputStream;
 
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 	
-	public ReadPacket(InetSocketAddress socketAddress, InputStream inputStream) {
-		this.socketAddress = socketAddress;
-		this.inputStream = inputStream;
+	public ReadPacket() {
 	}
 
 	////////////////////////
@@ -37,12 +36,5 @@ public class ReadPacket {
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
-	
-	public InetSocketAddress getSocketAddress() {
-		return socketAddress;
-	}
 
-	public InputStream getInputStream() {
-		return inputStream;
-	}
 }
