@@ -132,7 +132,7 @@ public class NetworkPeer {
 	}
 
 	public String getIP() {
-		return this.address.getHostName();
+		return this.address.getHostAddress();
 	}
 
 	public InetAddress getAddress() {

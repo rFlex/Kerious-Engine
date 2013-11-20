@@ -9,70 +9,34 @@
 
 package net.kerious.engine.network.protocol.packet;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-
-import net.kerious.engine.network.protocol.KeriousProtocol;
 import net.kerious.engine.network.protocol.KeriousSerializableData;
 
-@SuppressWarnings("rawtypes")
-public class KeriousPacket extends KeriousSerializableData<KeriousPacket> {
+public abstract class KeriousPacket extends KeriousSerializableData {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 
-	public byte packetType;
-	public KeriousSerializableData childPacket;
+	public static final byte INFORMATION_TYPE = 1;
+	public static final byte CONNECTION_TYPE = 2;
+	public static final byte PLAYER_COMMAND_TYPE = 3;
+	public static final byte KEEP_ALIVE_TYPE = 4;
+	public static final byte SNAPSHOT_TYPE = 10;
 
+	final public byte packetType;
+	
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 	
-	public KeriousPacket() {
-		
+	public KeriousPacket(byte packetType) {
+		this.packetType = packetType;
 	}
 
 	////////////////////////
 	// METHODS
 	////////////////
 	
-	@Override
-	public void deserialize(KeriousProtocol protocol, ByteBuffer buffer) throws IOException {
-		this.packetType = buffer.get();
-		
-		this.childPacket = (KeriousSerializableData)protocol.createPacket(this.packetType);
-		this.childPacket.deserialize(protocol, buffer);
-	}
-
-	@Override
-	public void serialize(KeriousProtocol protocol, ByteBuffer buffer) {
-		buffer.put(this.packetType);
-		
-		if (this.childPacket != null) {
-			this.childPacket.serialize(protocol, buffer);
-		}
-	}
-	
-	@Override
-	public void reset() {
-		super.reset();
-		
-		this.packetType = 0;
-		if (this.childPacket != null) {
-			this.childPacket.release();
-			this.childPacket = null;
-		}
-	}
-
-	@Override
-	public void copyTo(KeriousPacket object) {
-		object.packetType = this.packetType;
-		
-		if (this.childPacket != null) {
-			object.childPacket = this.childPacket.clone();
-		}
-	}
 	
 	////////////////////////
 	// GETTERS/SETTERS

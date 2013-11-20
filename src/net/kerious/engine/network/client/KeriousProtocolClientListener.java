@@ -12,6 +12,7 @@ package net.kerious.engine.network.client;
 public interface KeriousProtocolClientListener {
 
 	boolean shouldAcceptConnection(KeriousProtocolClient keriousClient, String ip, int port);
+	void onDisconnected(KeriousProtocolClient keriousClient, String ip, int port, String reason);
 	void onConnected(KeriousProtocolClient keriousClient, String ip, int port);
 	void onConnectionFailed(KeriousProtocolClient keriousClient, String ip, int port, Exception thrownException);
 	

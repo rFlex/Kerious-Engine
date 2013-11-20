@@ -14,7 +14,7 @@ import java.nio.ByteBuffer;
 import net.kerious.engine.network.protocol.KeriousProtocol;
 import net.kerious.engine.network.protocol.KeriousSerializableData;
 
-public class EntityModel extends KeriousSerializableData<EntityModel> {
+public class EntityModel extends KeriousSerializableData {
 
 	////////////////////////
 	// VARIABLES
@@ -55,7 +55,9 @@ public class EntityModel extends KeriousSerializableData<EntityModel> {
 	}
 
 	@Override
-	public void copyTo(EntityModel object) {
+	public void copyTo(KeriousSerializableData ksd) {
+		EntityModel object = (EntityModel)ksd;
+		
 		object.type = this.type;
 		object.id = this.id;
 		object.parentId = this.parentId;

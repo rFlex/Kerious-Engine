@@ -9,7 +9,7 @@
 
 package net.kerious.engine.network.protocol.packet;
 
-public class KeepAlivePacket extends KeriousReliablePacket<KeepAlivePacket> {
+public class KeepAlivePacket extends KeriousReliablePacket {
 
 	////////////////////////
 	// VARIABLES
@@ -18,6 +18,10 @@ public class KeepAlivePacket extends KeriousReliablePacket<KeepAlivePacket> {
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
+	
+	public KeepAlivePacket() {
+		super(KEEP_ALIVE_TYPE);
+	}
 
 	////////////////////////
 	// METHODS

@@ -15,7 +15,8 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 
 import net.kerious.engine.KeriousEngine;
-import net.kerious.engine.KeriousException;
+import net.kerious.engine.console.IntegerConsoleCommand;
+import net.kerious.engine.entity.Entity;
 import net.kerious.engine.entity.EntityManager;
 import net.kerious.engine.network.gate.NetworkGateListener;
 import net.kerious.engine.network.gate.UDPGate;
@@ -25,11 +26,13 @@ import net.kerious.engine.network.protocol.KeriousProtocolPeerListener;
 import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.utils.TemporaryUpdatable;
+import net.kerious.engine.utils.TemporaryUpdatableArray;
+import net.kerious.engine.world.World;
+import net.kerious.engine.world.WorldListener;
 
 import com.badlogic.gdx.utils.IntMap;
-import com.badlogic.gdx.utils.SnapshotArray;
 
-public class KeriousProtocolClient implements Closeable, TemporaryUpdatable, NetworkGateListener, KeriousProtocolPeerListener {
+public class KeriousProtocolClient implements Closeable, TemporaryUpdatable, NetworkGateListener, WorldListener, KeriousProtocolPeerListener {
 
 	////////////////////////
 	// VARIABLES
@@ -37,10 +40,12 @@ public class KeriousProtocolClient implements Closeable, TemporaryUpdatable, Net
 	
 	final private KeriousEngine engine;
 	final private IntMap<KeriousProtocolPeer> peersAsMap;
-	final private SnapshotArray<KeriousProtocolPeer> peersAsArray;
+	final private TemporaryUpdatableArray<KeriousProtocolPeer> peersAsArray;
+	private World replicatedWorld;
 	private UDPGate gate;
 	private KeriousProtocol protocol;
 	private KeriousProtocolClientListener listener;
+	private IntegerConsoleCommand timeoutTimeCommand;
 	private boolean closed;
 
 	////////////////////////
@@ -54,13 +59,17 @@ public class KeriousProtocolClient implements Closeable, TemporaryUpdatable, Net
 	public KeriousProtocolClient(KeriousEngine engine, int port) throws SocketException {
 		this.engine = engine;
 		this.peersAsMap = new IntMap<KeriousProtocolPeer>();
-		this.peersAsArray = new SnapshotArray<KeriousProtocolPeer>(KeriousProtocolPeer.class);
+		this.peersAsArray = new TemporaryUpdatableArray<KeriousProtocolPeer>(KeriousProtocolPeer.class);
 		this.protocol = new KeriousProtocol();
 		this.gate = new UDPGate(this.protocol, port);
 		this.gate.setListener(this);
 		this.gate.start();
 		
 		engine.addTemporaryUpdatable(this);
+		this.timeoutTimeCommand = new IntegerConsoleCommand("protocol_timeout_time", 1, 10);
+		this.timeoutTimeCommand.setValue(3);
+		
+		engine.getConsole().registerCommand(this.timeoutTimeCommand);
 	}
 
 	////////////////////////
@@ -122,37 +131,15 @@ public class KeriousProtocolClient implements Closeable, TemporaryUpdatable, Net
 	}
 	
 	final private void handleReceivedPacketFromKnownPeer(KeriousProtocolPeer peer, KeriousPacket packet) {
-		if (packet.packetType == KeriousProtocol.CONNECTION_TYPE) {
-			ConnectionPacket connectionPacket = (ConnectionPacket)packet.childPacket;
-			
-			switch (connectionPacket.type) {
-			case ConnectionPacket.CONNECTION_ASK:
-				// Resend the accepted packet
-				peer.send(this.protocol.createConnectionPacket(ConnectionPacket.CONNECTION_RESP_ACCEPTED));
-				break;
-			case ConnectionPacket.CONNECTION_RESP_ACCEPTED:
-				peer.setConnected(true);
-				if (this.listener != null) {
-					this.listener.onConnected(this, peer.getIP(), peer.getPort());
-				}
-				break;
-			case ConnectionPacket.CONNECTION_RESP_REFUSED:
-				peer.cancelConnectionAttempt();
-				if (this.listener != null) {
-					this.listener.onConnectionFailed(this, peer.getIP(), peer.getPort(), new KeriousException("Connection refused by the remote server"));
-				}
-				break;
-			}
-		} else {
-			peer.handlePacketReceived(packet);
-		}
+		peer.setTimeout(this.timeoutTimeCommand.getValue());
+		peer.handlePacketReceived(packet);
 	}
 	
 	final private void handleReceivedPacketFromUnknownPeer(InetAddress address, int port, KeriousPacket packet) {
-		if (packet.packetType == KeriousProtocol.CONNECTION_TYPE) {
-			ConnectionPacket connectionPacket = (ConnectionPacket)packet.childPacket;
+		if (packet.packetType == KeriousPacket.CONNECTION_TYPE) {
+			ConnectionPacket connectionPacket = (ConnectionPacket)packet;
 			
-			switch (connectionPacket.type) {
+			switch (connectionPacket.connectionRequest) {
 			case ConnectionPacket.CONNECTION_ASK:
 				boolean connectionAccepted = false;
 				if (this.listener != null) {
@@ -161,6 +148,7 @@ public class KeriousProtocolClient implements Closeable, TemporaryUpdatable, Net
 				if (connectionAccepted) {
 					KeriousProtocolPeer peer = this.addPeer(address, port);
 					peer.setConnected(true);
+					peer.setTimeout(this.timeoutTimeCommand.getValue());
 					this.gate.send(this.protocol.createConnectionPacket(ConnectionPacket.CONNECTION_RESP_ACCEPTED), address, port);
 					if (this.listener != null) {
 						this.listener.onConnected(this, address.getHostName(), port);
@@ -194,6 +182,7 @@ public class KeriousProtocolClient implements Closeable, TemporaryUpdatable, Net
 			this.gate.close();
 			this.gate = null;
 		}
+		this.engine.getConsole().unregisterCommand(this.timeoutTimeCommand);
 		this.closed = true;
 	}
 	
@@ -207,6 +196,7 @@ public class KeriousProtocolClient implements Closeable, TemporaryUpdatable, Net
 		} else {
 			this.handleReceivedPacketFromKnownPeer(peer, keriousPacket);
 		}
+		
 		keriousPacket.release();
 	}
 
@@ -221,15 +211,7 @@ public class KeriousProtocolClient implements Closeable, TemporaryUpdatable, Net
 
 	@Override
 	public void onFailedReceive(InetAddress address, int port, Exception exception) {
-		System.out.println("Failed receive: " + exception.getMessage());
 		exception.printStackTrace();
-	}
-	
-	@Override
-	public void onConnectionFailed(KeriousProtocolPeer peer) {
-		if (this.listener != null) {
-			this.listener.onConnectionFailed(this, peer.getIP(), peer.getPort(), new KeriousException("Connection failed after 3 attempts"));
-		}
 	}
 	
 	/**
@@ -240,6 +222,69 @@ public class KeriousProtocolClient implements Closeable, TemporaryUpdatable, Net
 	 */
 	protected KeriousProtocolPeer createPeer(InetAddress address, int port) {
 		return new KeriousProtocolPeer(address, port);
+	}
+	
+	public void beginReplicatingWorld(World world) {
+		if (world == null) {
+			throw new IllegalArgumentException("world may not be null");
+		}
+		
+		this.endReplicatingWorld();
+		world.setListener(this);
+		this.replicatedWorld = world;
+	}
+	
+	public void endReplicatingWorld() {
+		if (this.replicatedWorld != null) {
+			this.replicatedWorld.setListener(null);
+			this.replicatedWorld = null;
+		}
+	}
+	
+	@Override
+	public void willUpdateWorld(World world) {
+		
+	}
+
+	@Override
+	public void didUpdateWorld(World world) {
+		
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public void onEntityCreated(World world, Entity entity) {
+		
+	}
+
+	@Override
+	public void onEntityDestroyed(World world, int entityId) {
+		
+	}
+	
+	@Override
+	public void onConnected(KeriousProtocolPeer peer) {
+		if (this.listener != null) {
+			this.listener.onConnected(this, peer.getIP(), peer.getPort());
+		}
+	}
+	
+	@Override
+	public void onConnectionFailed(KeriousProtocolPeer peer, Exception exception) {
+		if (this.listener != null) {
+			this.listener.onConnectionFailed(this, peer.getIP(), peer.getPort(), exception);
+		}
+	}
+
+	@Override
+	public void onDisconnected(KeriousProtocolPeer peer, String reason) {
+		if (this.listener != null) {
+			this.listener.onDisconnected(this, peer.getIP(), peer.getPort(), reason);
+		}
+	}
+	
+	public void skip(int toSkip) {
+		this.peersAsArray.get(0).toSkip = toSkip;
 	}
 	
 	////////////////////////
@@ -277,5 +322,17 @@ public class KeriousProtocolClient implements Closeable, TemporaryUpdatable, Net
 
 	public void setListener(KeriousProtocolClientListener listener) {
 		this.listener = listener;
+	}
+	
+	public void setTimeoutTime(int timeoutTime) {
+		this.timeoutTimeCommand.setValue(timeoutTime);
+	}
+	
+	public int getTimeoutTime() {
+		return this.timeoutTimeCommand.getValue();
+	}
+
+	public World getReplicatedWorld() {
+		return replicatedWorld;
 	}
 }

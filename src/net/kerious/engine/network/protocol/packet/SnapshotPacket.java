@@ -11,31 +11,35 @@ package net.kerious.engine.network.protocol.packet;
 
 import java.nio.ByteBuffer;
 
+import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.network.protocol.KeriousProtocol;
 
 import com.badlogic.gdx.utils.Array;
 
-public class SnapshotPacket extends KeriousReliablePacket<SnapshotPacket> {
+public class SnapshotPacket extends KeriousReliablePacket {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 
-	private Array<ModelPacket> models;
+	private Array<EntityModel> models;
 	
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 	
 	public SnapshotPacket() {
-		this.models = new Array<ModelPacket>(64);
+		super(SNAPSHOT_TYPE);
+		this.models = new Array<EntityModel>(64);
 	}
 
 	////////////////////////
 	// METHODS
 	////////////////
 	
-	public void addModel(ModelPacket model) {
+	public void addModel(EntityModel model) {
+		model.retain();
+		
 		this.models.add(model);
 	}
 	
@@ -52,18 +56,15 @@ public class SnapshotPacket extends KeriousReliablePacket<SnapshotPacket> {
 	@Override
 	public void reset() {
 		super.reset();
-		
+
+		EntityModel[] models = this.models.items;
 		for (int i = 0, length = this.models.size; i < length; i++) {
-			ModelPacket model = (ModelPacket)this.models.get(i);
+			EntityModel model = models[i];
 			model.release();
+			models[i] = null;
 		}
 		
-		this.models.clear();
-	}
-
-	@Override
-	public void copyTo(SnapshotPacket object) {
-		super.copyTo(object);
+		this.models.size = 0;
 	}
 
 	////////////////////////

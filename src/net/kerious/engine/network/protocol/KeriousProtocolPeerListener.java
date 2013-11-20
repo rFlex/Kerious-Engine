@@ -11,6 +11,8 @@ package net.kerious.engine.network.protocol;
 
 public interface KeriousProtocolPeerListener {
 
-	void onConnectionFailed(KeriousProtocolPeer peer);
+	void onConnectionFailed(KeriousProtocolPeer peer, Exception exception);
+	void onConnected(KeriousProtocolPeer peer);
+	void onDisconnected(KeriousProtocolPeer peer, String reason);
 	
 }

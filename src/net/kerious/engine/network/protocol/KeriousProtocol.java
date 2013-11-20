@@ -21,24 +21,15 @@ import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeepAlivePacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.network.protocol.packet.SnapshotPacket;
+import net.kerious.engine.utils.FactoryManager;
 
-public class KeriousProtocol implements INetworkProtocol {
+public class KeriousProtocol extends FactoryManager implements INetworkProtocol {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 	
-	public static final byte INFORMATION_TYPE = 1;
-	public static final byte CONNECTION_TYPE = 2;
-	public static final byte PLAYER_COMMAND_TYPE = 3;
-	public static final byte KEEP_ALIVE_TYPE = 4;
-	public static final byte SNAPSHOT_TYPE = 10;
-	
 	private EntityManager entityManager;
-	private Pool<SnapshotPacket> snapshotPackets;
-	private Pool<ConnectionPacket> connectionPackets;
-	private Pool<KeepAlivePacket> keepAlivePackets;
-	private Pool<KeriousPacket> packets;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -53,76 +44,41 @@ public class KeriousProtocol implements INetworkProtocol {
 	////////////////
 	
 	private void initPackets() {
-		this.packets = new Pool<KeriousPacket>() {
-			protected KeriousPacket instantiate() {
-				return new KeriousPacket();
-			}
-		};
-		
-		this.snapshotPackets = new Pool<SnapshotPacket>() {
+		this.registerFactory(KeriousPacket.SNAPSHOT_TYPE, new Pool<SnapshotPacket>() {
 			protected SnapshotPacket instantiate() {
 				return new SnapshotPacket();
 			}
-		};
-		this.connectionPackets = new Pool<ConnectionPacket>() {
+		});
+		
+		this.registerFactory(KeriousPacket.CONNECTION_TYPE, new Pool<ConnectionPacket>() {
 			protected ConnectionPacket instantiate() {
 				return new ConnectionPacket();
 			}
-		};
-		this.keepAlivePackets = new Pool<KeepAlivePacket>() {
+		});
+		
+		this.registerFactory(KeriousPacket.KEEP_ALIVE_TYPE, new Pool<KeepAlivePacket>() {
 			protected KeepAlivePacket instantiate() {
 				return new KeepAlivePacket();
 			}
-		};
+		});
 	}
 	
 	@SuppressWarnings("unchecked")
 	public <T> T createPacket(int packetType) {
-		
-		switch (packetType) {
-		case CONNECTION_TYPE:
-			return (T)this.connectionPackets.obtain();
-		case SNAPSHOT_TYPE:
-			return (T)this.snapshotPackets.obtain();
-		case KEEP_ALIVE_TYPE:
-			return (T)this.keepAlivePackets.obtain();
-		}
-		
-		throw new KeriousException("Packet type " + packetType + " is not recognized");
+		return (T)this.createObject(packetType);
 	}
 	
-	final public KeriousPacket createConnectionPacket(byte connectionType) {
-		KeriousPacket packet = this.createKeriousPacket();
-		ConnectionPacket connectionPacket = this.connectionPackets.obtain();
+	final public ConnectionPacket createConnectionPacket(byte connectionType) {
+		ConnectionPacket connectionPacket = (ConnectionPacket)this.createPacket(KeriousPacket.CONNECTION_TYPE);
+		connectionPacket.connectionRequest = connectionType;
 		
-		packet.packetType = CONNECTION_TYPE;
-		packet.childPacket = connectionPacket;
-		connectionPacket.type = connectionType;
+		return connectionPacket;
+	}
+	
+	final public KeepAlivePacket createKeepAlivePacket() {
+		KeepAlivePacket packet = (KeepAlivePacket)this.createPacket(KeriousPacket.KEEP_ALIVE_TYPE);
 		
 		return packet;
-	}
-	
-	final public KeriousPacket createKeepAlivePacket() {
-		KeriousPacket packet = this.createKeriousPacket();
-		
-		packet.packetType = KEEP_ALIVE_TYPE;
-		packet.childPacket = this.keepAlivePackets.obtain();
-		
-		return packet;
-	}
-	
-	final public KeriousPacket createKeriousPacket(byte subPacketType) {
-		KeriousSerializableData<?> subPacket = this.createPacket(subPacketType);
-		KeriousPacket packet = this.createKeriousPacket();
-		
-		packet.packetType = subPacketType;
-		packet.childPacket = subPacket;
-		
-		return packet;
-	}
-	
-	final public KeriousPacket createKeriousPacket() {
-		return this.packets.obtain();
 	}
 	
 	final public EntityModel createModel(int entityType) {
@@ -139,7 +95,8 @@ public class KeriousProtocol implements INetworkProtocol {
 	
 	@Override
 	public Object deserialize(ByteBuffer byteBuffer) throws IOException {
-		KeriousPacket packet = this.createKeriousPacket();
+		byte packetType = byteBuffer.get();
+		KeriousPacket packet = this.createPacket(packetType);
 		
 		try {
 			packet.deserialize(this, byteBuffer);
@@ -157,28 +114,11 @@ public class KeriousProtocol implements INetworkProtocol {
 	@Override
 	public void serialize(Object object, ByteBuffer byteBuffer) {
 		KeriousPacket packet = (KeriousPacket)object;
+		
+		byteBuffer.put(packet.packetType);
+		
 		packet.serialize(this, byteBuffer);
 	}
-	
-//	@Override
-//	public Object deserialize(InputStream inputStream) throws IOException {
-//		ByteBuffer byteBuffer = ByteBuffer.wrap(IOUtils.readStream(inputStream));
-//		
-//		KeriousPacket packet = this.createKeriousPacket();
-//		packet.deserialize(this, byteBuffer);
-//		
-//		return packet;
-//	}
-//
-//	@Override
-//	public InputStream serialize(Object object){
-//		KeriousPacket packet = (KeriousPacket)object;
-//		ByteBuffer byteBuffer = ByteBuffer.allocate(2048);
-//		
-//		packet.serialize(this, byteBuffer);
-//		
-//		return new ByteArrayInputStream(byteBuffer.array(), 0, byteBuffer.position());
-//	}
 
 	////////////////////////
 	// GETTERS/SETTERS

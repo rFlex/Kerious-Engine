@@ -15,7 +15,7 @@ import java.nio.ByteBuffer;
 import net.kerious.engine.network.protocol.KeriousProtocol;
 import net.kerious.engine.network.protocol.KeriousSerializableData;
 
-public class ConnectionPacket extends KeriousSerializableData<ConnectionPacket> {
+public class ConnectionPacket extends KeriousPacket {
 
 	////////////////////////
 	// VARIABLES
@@ -25,30 +25,35 @@ public class ConnectionPacket extends KeriousSerializableData<ConnectionPacket> 
 	public final static byte CONNECTION_RESP_REFUSED = 2;
 	public final static byte CONNECTION_RESP_ACCEPTED = 3;
 	
-	public byte type;
+	public byte connectionRequest;
 
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
+	
+	public ConnectionPacket() {
+		super(CONNECTION_TYPE);
+	}
 
 	////////////////////////
 	// METHODS
 	////////////////
 	
 	@Override
-	public void copyTo(ConnectionPacket packet) {
-		packet.type = this.type;
-	}
-
-	@Override
 	public void deserialize(KeriousProtocol protocol, ByteBuffer buffer)
 			throws IOException {
-		this.type = buffer.get();
+		this.connectionRequest = buffer.get();
 	}
 
 	@Override
 	public void serialize(KeriousProtocol protocol, ByteBuffer buffer) {
-		buffer.put(this.type);
+		buffer.put(this.connectionRequest);
+	}
+
+	@Override
+	public void copyTo(KeriousSerializableData object) {
+		ConnectionPacket packet = (ConnectionPacket)object;
+		packet.connectionRequest = this.connectionRequest;
 	}
 
 	////////////////////////

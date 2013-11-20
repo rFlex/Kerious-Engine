@@ -14,8 +14,7 @@ import java.nio.ByteBuffer;
 
 import me.corsin.javatools.misc.PoolableImpl;
 
-@SuppressWarnings("rawtypes")
-public abstract class KeriousSerializableData<T extends KeriousSerializableData> extends PoolableImpl {
+public abstract class KeriousSerializableData extends PoolableImpl {
 
 	////////////////////////
 	// VARIABLES
@@ -34,9 +33,8 @@ public abstract class KeriousSerializableData<T extends KeriousSerializableData>
 	// METHODS
 	////////////////
 	
-	@SuppressWarnings("unchecked")
-	public T clone() {
-		T element = (T)this.getPool().obtain();
+	public KeriousSerializableData clone() {
+		KeriousSerializableData element = (KeriousSerializableData)this.getPool().obtain();
 		
 		this.copyTo(element);
 		
@@ -61,7 +59,7 @@ public abstract class KeriousSerializableData<T extends KeriousSerializableData>
 		}
 	}
 	
-	abstract public void copyTo(T object);
+	abstract public void copyTo(KeriousSerializableData object);
 	abstract public void deserialize(KeriousProtocol protocol, ByteBuffer buffer) throws IOException;
 	abstract public void serialize(KeriousProtocol protocol, ByteBuffer buffer);
 
