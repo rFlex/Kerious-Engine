@@ -9,17 +9,13 @@
 
 package net.kerious.engine.network.gate;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 
-import me.corsin.javatools.io.IOUtils;
 import net.kerious.engine.network.protocol.INetworkProtocol;
 
 public class UDPGate extends NetworkGate {
@@ -28,10 +24,9 @@ public class UDPGate extends NetworkGate {
 	// VARIABLES
 	////////////////
 	
-	private DatagramSocket socket;
-	private DatagramPacket sendPacket;
-	private DatagramPacket receivePacket;
-	private byte[] buffer;
+	final private DatagramSocket socket;
+	final private DatagramPacket sendPacket;
+	final private DatagramPacket receivePacket;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -61,8 +56,7 @@ public class UDPGate extends NetworkGate {
 			this.socket = new DatagramSocket(port);
 		}
 		
-		this.buffer = new byte[65536];
-		this.receivePacket = new DatagramPacket(this.buffer, this.buffer.length);
+		this.receivePacket = new DatagramPacket(new byte[1], 1);
 		this.sendPacket = new DatagramPacket(new byte[1], 1);
 	}
 
@@ -71,27 +65,27 @@ public class UDPGate extends NetworkGate {
 	////////////////
 
 	@Override
-	protected void readNextPacket(ReadPacket readPacket) throws IOException {
-		this.socket.receive(receivePacket);
+	protected void readPacket(NetworkTask outputTask) throws IOException {
+		ByteBuffer buffer = outputTask.buffer;
 		
-		InputStream stream = new ByteArrayInputStream(this.buffer, 0, this.receivePacket.getLength());
+		this.receivePacket.setData(buffer.array(), 0, buffer.capacity());
+		this.socket.receive(this.receivePacket);
+		
+		buffer.rewind();
+		buffer.limit(this.receivePacket.getLength());
 
-		readPacket.inputStream = stream;
-		readPacket.inetAddress = this.receivePacket.getAddress();
-		readPacket.port = this.receivePacket.getPort();
+		outputTask.address = this.receivePacket.getAddress();
+		outputTask.port = this.receivePacket.getPort();
 	}
 
 	@Override
-	protected void sendPacket(ByteBuffer byteBuffer, int size, InetAddress address, int port) {
-		try {
-			this.sendPacket.setData(byteBuffer.array(), 0, size);
-			this.sendPacket.setAddress(address);
-			this.sendPacket.setPort(port);
-			
-			this.socket.send(this.sendPacket);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	protected void sendPacket(ByteBuffer buffer, InetAddress address, int port) throws IOException {
+		this.sendPacket.setData(buffer.array());
+		this.sendPacket.setLength(buffer.position());
+		this.sendPacket.setAddress(address);
+		this.sendPacket.setPort(port);
+		
+		this.socket.send(this.sendPacket);
 	}
 	
 	@Override

@@ -10,6 +10,7 @@
 package net.kerious.engine;
 
 import net.kerious.engine.console.IntegerConsoleCommand;
+import net.kerious.engine.input.NullInputManager;
 import net.kerious.engine.renderer.NullRenderer;
 
 public class KeriousEngineNullDrawing extends KeriousEngine {
@@ -26,7 +27,7 @@ public class KeriousEngineNullDrawing extends KeriousEngine {
 	////////////////
 	
 	public KeriousEngineNullDrawing(KeriousEngineListener listener) {
-		super(new NullRenderer(), null, null, listener);
+		super(new NullRenderer(), new NullInputManager(), null, listener);
 
 		this.initCommands();
 	}
@@ -43,9 +44,39 @@ public class KeriousEngineNullDrawing extends KeriousEngine {
 	
 	public void startLoop() {
 		this.cont = true;
+		float deltaTime = 0;
+		
+		long currentTime = 0;
+		long timeBeforeRender = 0;
+		long timeTakenForRender = 0;
+		long bestTimePerFrame = 0;
+		long timeToSleep = 0;
 		
 		while (this.cont) {
-			this.render(0);
+			currentTime = System.nanoTime();
+			
+			if (timeBeforeRender != 0) {
+				deltaTime = ((float)((currentTime - timeBeforeRender) / 1000)) / 1000000f;
+			}
+			
+			timeBeforeRender = currentTime;
+			
+			this.render(deltaTime);
+			
+			timeTakenForRender = System.nanoTime() - timeBeforeRender;
+			
+			bestTimePerFrame = 1000000000 / this.fpsCommand.getValue().longValue();
+			timeToSleep = bestTimePerFrame - timeTakenForRender;
+			
+			if (timeToSleep > 0) {
+				long msPart = timeToSleep / 1000000;
+				int nanoPart = (int)(timeToSleep - (msPart * 1000000));
+				try {
+					Thread.sleep(msPart, nanoPart);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 	
@@ -63,6 +94,7 @@ public class KeriousEngineNullDrawing extends KeriousEngine {
 		 kend.setFps(fps);
 		 
 		 kend.initialize();
+		 listener.onReady(kend);
 		 kend.startLoop();
 	}
 

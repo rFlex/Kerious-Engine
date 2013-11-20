@@ -1,17 +1,15 @@
 /////////////////////////////////////////////////
 // Project : Kerious Engine
-// Package : net.kerious.engine.network.gate
-// SendTask.java
+// Package : net.kerious.engine.network.protocol.packet
+// KeepAlivePacket.java
 //
 // Author : Simon CORSIN <simoncorsin@gmail.com>
-// File created on Nov 17, 2013 at 8:18:15 PM
+// File created on Nov 20, 2013 at 1:27:15 PM
 ////////
 
-package net.kerious.engine.network.gate;
+package net.kerious.engine.network.protocol.packet;
 
-import me.corsin.javatools.task.SimpleTask;
-
-public class SendTask extends SimpleTask {
+public class KeepAlivePacket extends KeriousReliablePacket<KeepAlivePacket> {
 
 	////////////////////////
 	// VARIABLES
@@ -24,11 +22,6 @@ public class SendTask extends SimpleTask {
 	////////////////////////
 	// METHODS
 	////////////////
-	
-	@Override
-	protected void perform() throws Throwable {
-		
-	}
 
 	////////////////////////
 	// GETTERS/SETTERS

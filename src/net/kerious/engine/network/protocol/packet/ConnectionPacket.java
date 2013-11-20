@@ -20,6 +20,12 @@ public class ConnectionPacket extends KeriousSerializableData<ConnectionPacket> 
 	////////////////////////
 	// VARIABLES
 	////////////////
+	
+	public final static byte CONNECTION_ASK = 1;
+	public final static byte CONNECTION_RESP_REFUSED = 2;
+	public final static byte CONNECTION_RESP_ACCEPTED = 3;
+	
+	public byte type;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -31,18 +37,18 @@ public class ConnectionPacket extends KeriousSerializableData<ConnectionPacket> 
 	
 	@Override
 	public void copyTo(ConnectionPacket packet) {
-		
+		packet.type = this.type;
 	}
 
 	@Override
 	public void deserialize(KeriousProtocol protocol, ByteBuffer buffer)
 			throws IOException {
-		
+		this.type = buffer.get();
 	}
 
 	@Override
 	public void serialize(KeriousProtocol protocol, ByteBuffer buffer) {
-		
+		buffer.put(this.type);
 	}
 
 	////////////////////////

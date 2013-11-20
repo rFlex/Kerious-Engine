@@ -20,10 +20,15 @@ public abstract class KeriousSerializableData<T extends KeriousSerializableData>
 	////////////////////////
 	// VARIABLES
 	////////////////
-
+	
+	public int retainCount;
+	
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
+	
+	public KeriousSerializableData() {
+	}
 
 	////////////////////////
 	// METHODS
@@ -36,6 +41,24 @@ public abstract class KeriousSerializableData<T extends KeriousSerializableData>
 		this.copyTo(element);
 		
 		return element;
+	}
+	
+	@Override
+	public void reset() {
+		this.retainCount = 1;
+	}
+	
+	public void retain() {
+		this.retainCount++;
+	}
+	
+	@Override
+	public void release() {
+		this.retainCount--;
+		
+		if (this.retainCount == 0) {
+			super.release();
+		}
 	}
 	
 	abstract public void copyTo(T object);

@@ -9,21 +9,21 @@
 
 package net.kerious.engine.network.peer;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
-import me.corsin.javatools.misc.PoolableImpl;
 import net.kerious.engine.network.gate.NetworkGate;
 import net.kerious.engine.network.gate.NetworkPeerException;
 
-public class NetworkPeer extends PoolableImpl {
+public class NetworkPeer {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 	
-	final private InetSocketAddress address;
+	final private InetAddress address;
+	final private int port;
 	private NetworkGate gate;
-	private INetworkPeerListener listener;
 	private int cachedHashCode;
 	private boolean hashCodeComputed;
 	
@@ -32,7 +32,7 @@ public class NetworkPeer extends PoolableImpl {
 	////////////////
 
 	public NetworkPeer(NetworkPeer networkPeer) {
-		this(networkPeer.address, networkPeer.gate);
+		this(networkPeer.address, networkPeer.port, networkPeer.gate);
 	}
 	
 	public NetworkPeer(String ip, int port) {
@@ -48,12 +48,23 @@ public class NetworkPeer extends PoolableImpl {
 	}
 	
 	public NetworkPeer(InetSocketAddress address, NetworkGate gate) {
+		this(address.getAddress(), address.getPort(), gate);
+	}
+	
+	public NetworkPeer(InetAddress address, int port, NetworkGate gate) {
 		this.address = address;
+		this.port = port;
 		this.gate = gate;
 		
 		if (this.address == null) {
 			throw new NullPointerException("address");
 		}
+		
+		this.commonInit();
+	}
+	
+	protected void commonInit() {
+		
 	}
 
 	////////////////////////
@@ -64,11 +75,15 @@ public class NetworkPeer extends PoolableImpl {
 		if (this.gate == null) {
 			throw new NetworkPeerException("Cannot send a packet to a NetworkPeer that is not registered to a NetworkGate");
 		}
-		this.gate.send(packet, this.address.getAddress(), this.address.getPort());
+		this.gate.send(packet, this.address, this.port);
 	}
 	
 	public static int computeHashCodeForAddress(InetSocketAddress address) {
 		return computeHashCodeForAddress(address.getAddress().getAddress(), address.getPort());
+	}
+	
+	public static int computeHashCodeForAddress(InetAddress address, int port) {
+		return computeHashCodeForAddress(address.getAddress(), port);
 	}
 	
 	public static int computeHashCodeForAddress(byte[] ip, int port) {
@@ -86,30 +101,10 @@ public class NetworkPeer extends PoolableImpl {
 		return (int)(value ^ (value >>> 32));
 	}
 	
-	public void signalSent(Object packet, Exception exception) {
-		if (this.listener != null) {
-			if (exception == null) {
-				this.listener.onSent(this, packet);
-			} else {
-				this.listener.onFailedSend(this, packet, exception);
-			}
-		}
-	}
-	
-	public void signalReceived(Object packet, Exception exception) {
-		if (this.listener != null) {
-			if (exception == null) {
-				this.listener.onReceived(this, packet);
-			} else {
-				this.listener.onFailedReceived(this, exception);
-			}
-		}
-	}
-	
 	@Override
 	public int hashCode() {
 		if (!this.hashCodeComputed) {
-			this.cachedHashCode = computeHashCodeForAddress(this.address); 
+			this.cachedHashCode = computeHashCodeForAddress(this.address, this.port); 
 		}
 		
 		return this.cachedHashCode;
@@ -127,10 +122,6 @@ public class NetworkPeer extends PoolableImpl {
 	public boolean isRegisterable() {
 		return this.address.getAddress() != null;
 	}
-	
-	public InetSocketAddress getAddress() {
-		return address;
-	}
 
 	public NetworkGate getGate() {
 		return gate;
@@ -140,19 +131,16 @@ public class NetworkPeer extends PoolableImpl {
 		this.gate = gate;
 	}
 
-	public INetworkPeerListener getListener() {
-		return listener;
-	}
-
-	public void setListener(INetworkPeerListener listener) {
-		this.listener = listener;
-	}
-	
 	public String getIP() {
 		return this.address.getHostName();
 	}
-	
-	public int getPort() {
-		return this.address.getPort();
+
+	public InetAddress getAddress() {
+		return address;
 	}
+
+	public int getPort() {
+		return port;
+	}
+
 }

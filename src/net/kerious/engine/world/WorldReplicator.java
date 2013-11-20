@@ -9,12 +9,9 @@
 
 package net.kerious.engine.world;
 
-import java.net.SocketException;
-
 import net.kerious.engine.KeriousEngine;
 import net.kerious.engine.entity.Entity;
 import net.kerious.engine.network.gate.NetworkGate;
-import net.kerious.engine.network.gate.UDPGate;
 import net.kerious.engine.network.protocol.KeriousProtocolPeer;
 
 import com.badlogic.gdx.utils.Array;
@@ -41,13 +38,6 @@ public class WorldReplicator implements Disposable, WorldListener {
 	public WorldReplicator(KeriousEngine engine, int port) {
 		if (engine == null) {
 			throw new IllegalArgumentException("engine may not be null");
-		}
-		
-		try {
-			this.gate = new UDPGate(null, port);
-			this.gate.setCallBackTaskQueue(engine.getTaskQueue());
-		} catch (SocketException e) {
-			engine.getConsole().print("ERROR: Unable to create gate for WorldReplicator: " + e.getMessage());
 		}
 		
 		this.peers = new Array<KeriousProtocolPeer>(false, 32, KeriousProtocolPeer.class);

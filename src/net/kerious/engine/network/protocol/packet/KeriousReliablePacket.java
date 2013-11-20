@@ -7,11 +7,15 @@
 // File created on Nov 16, 2013 at 11:49:25 PM
 ////////
 
-package net.kerious.engine.network.protocol;
+package net.kerious.engine.network.protocol.packet;
 
 import java.nio.ByteBuffer;
 
-public class KeriousReliablePacket extends KeriousSerializableData<KeriousReliablePacket> {
+import net.kerious.engine.network.protocol.KeriousProtocol;
+import net.kerious.engine.network.protocol.KeriousSerializableData;
+
+@SuppressWarnings("rawtypes")
+public class KeriousReliablePacket<T extends KeriousReliablePacket> extends KeriousSerializableData<T> {
 
 	////////////////////////
 	// VARIABLES
@@ -24,6 +28,10 @@ public class KeriousReliablePacket extends KeriousSerializableData<KeriousReliab
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
+	
+	public KeriousReliablePacket() {
+		
+	}
 
 	////////////////////////
 	// METHODS
@@ -53,6 +61,7 @@ public class KeriousReliablePacket extends KeriousSerializableData<KeriousReliab
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public void copyTo(KeriousReliablePacket object) {
 		object.sequence = this.sequence;
 		object.lastSequenceReceived = this.lastSequenceReceived;

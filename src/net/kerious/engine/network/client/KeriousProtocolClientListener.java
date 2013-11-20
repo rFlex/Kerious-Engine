@@ -9,10 +9,10 @@
 
 package net.kerious.engine.network.client;
 
-import java.net.InetSocketAddress;
-
 public interface KeriousProtocolClientListener {
 
-	void onConnectionAsked(KeriousProtocolClient keriousClient, String name, InetSocketAddress ip, int port);
+	boolean shouldAcceptConnection(KeriousProtocolClient keriousClient, String ip, int port);
+	void onConnected(KeriousProtocolClient keriousClient, String ip, int port);
+	void onConnectionFailed(KeriousProtocolClient keriousClient, String ip, int port, Exception thrownException);
 	
 }

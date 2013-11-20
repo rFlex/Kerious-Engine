@@ -12,11 +12,10 @@ package net.kerious.engine.network.protocol.packet;
 import java.nio.ByteBuffer;
 
 import net.kerious.engine.network.protocol.KeriousProtocol;
-import net.kerious.engine.network.protocol.KeriousSerializableData;
 
 import com.badlogic.gdx.utils.Array;
 
-public class SnapshotPacket extends KeriousSerializableData<SnapshotPacket> {
+public class SnapshotPacket extends KeriousReliablePacket<SnapshotPacket> {
 
 	////////////////////////
 	// VARIABLES
@@ -64,7 +63,7 @@ public class SnapshotPacket extends KeriousSerializableData<SnapshotPacket> {
 
 	@Override
 	public void copyTo(SnapshotPacket object) {
-		
+		super.copyTo(object);
 	}
 
 	////////////////////////

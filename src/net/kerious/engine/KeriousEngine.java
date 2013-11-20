@@ -9,19 +9,18 @@
 
 package net.kerious.engine;
 
-import com.badlogic.gdx.assets.loaders.FileHandleResolver;
-import com.badlogic.gdx.utils.SnapshotArray;
-
+import me.corsin.javatools.misc.Disposable;
+import me.corsin.javatools.task.TaskQueue;
 import net.kerious.engine.console.Console;
 import net.kerious.engine.input.InputManager;
 import net.kerious.engine.renderer.Renderer;
 import net.kerious.engine.resource.ResourceManager;
 import net.kerious.engine.skin.SkinManager;
 import net.kerious.engine.utils.TemporaryUpdatable;
+import net.kerious.engine.utils.TemporaryUpdatableArray;
 import net.kerious.engine.view.View;
 
-import me.corsin.javatools.misc.Disposable;
-import me.corsin.javatools.task.TaskQueue;
+import com.badlogic.gdx.assets.loaders.FileHandleResolver;
 
 public abstract class KeriousEngine implements Disposable {
 
@@ -34,7 +33,7 @@ public abstract class KeriousEngine implements Disposable {
 	final private Console console;
 	final private KeriousEngineListener listener;
 	final private InputManager inputManager;
-	final private SnapshotArray<TemporaryUpdatable> updatables;
+	final private TemporaryUpdatableArray<TemporaryUpdatable> updatables;
 	final private SkinManager globalSkinManager;
 	final private FileHandleResolver fileHandleResolver;
 	final private ResourceManager resourceManager;
@@ -50,7 +49,7 @@ public abstract class KeriousEngine implements Disposable {
 		this.inputManager = inputManager;
 		this.taskQueue = new TaskQueue();
 		this.console = new Console();
-		this.updatables = new SnapshotArray<TemporaryUpdatable>(false, 32, TemporaryUpdatable.class);
+		this.updatables = new TemporaryUpdatableArray<TemporaryUpdatable>(TemporaryUpdatable.class);
 		this.globalSkinManager = new SkinManager(true);
 		this.renderer = renderer;
 		this.fileHandleResolver = fileHandleResolver;
@@ -69,17 +68,7 @@ public abstract class KeriousEngine implements Disposable {
 	public void update(float deltaTime) {
 		this.taskQueue.flushTasks();
 		
-		TemporaryUpdatable[] updatables = this.updatables.begin();
-		for (int i = 0, length = this.updatables.size; i < length; i++) {
-			TemporaryUpdatable updatable = updatables[i];
-			
-			if (!updatable.hasExpired()) {
-				updatable.update(deltaTime);
-			} else {
-				this.updatables.removeValue(updatable, true);
-			}
-		}
-		this.updatables.end();
+		this.updatables.update(deltaTime);
 		
 		if (this.keyView != null) {
 			this.keyView.update(deltaTime);

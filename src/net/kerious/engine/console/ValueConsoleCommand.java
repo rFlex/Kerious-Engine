@@ -52,13 +52,13 @@ public abstract class ValueConsoleCommand<T> extends AbstractConsoleCommand {
 	private T getTruncatedValue(T value) {
 		final T minValue = this.getMinValue();
 		
-		if (this.compareValue(value, minValue) > 0) {
+		if (this.compareValue(value, minValue) < 0) {
 			return minValue;
 		}
 		
 		final T maxValue = this.getMaxValue();
 		
-		if (this.compareValue(value, maxValue) < 0) {
+		if (this.compareValue(value, maxValue) > 0) {
 			return this.maxValue;
 		}
 		

@@ -11,7 +11,7 @@ package net.kerious.engine.network.gate;
 
 import java.net.InetAddress;
 
-public interface INetworkGateListener {
+public interface NetworkGateListener {
 
 	void onReceived(InetAddress address, int port, Object packet);
 	void onSent(InetAddress address, int port, Object packet);
