@@ -15,13 +15,17 @@ import java.nio.ByteBuffer;
 import me.corsin.javatools.misc.Pool;
 import net.kerious.engine.KeriousException;
 import net.kerious.engine.entity.EntityException;
-import net.kerious.engine.entity.EntityManager;
 import net.kerious.engine.entity.model.EntityModel;
+import net.kerious.engine.entity.model.EntityModelCreator;
 import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeepAlivePacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
+import net.kerious.engine.network.protocol.packet.RequestPacket;
 import net.kerious.engine.network.protocol.packet.SnapshotPacket;
+import net.kerious.engine.network.protocol.packet.WorldInformationsPacket;
 import net.kerious.engine.utils.FactoryManager;
+import net.kerious.engine.world.event.Event;
+import net.kerious.engine.world.event.EventCreator;
 
 public class KeriousProtocol extends FactoryManager implements INetworkProtocol {
 
@@ -29,7 +33,8 @@ public class KeriousProtocol extends FactoryManager implements INetworkProtocol 
 	// VARIABLES
 	////////////////
 	
-	private EntityManager entityManager;
+	private EntityModelCreator entityModelCreator;
+	private EventCreator eventCreator;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -44,23 +49,37 @@ public class KeriousProtocol extends FactoryManager implements INetworkProtocol 
 	////////////////
 	
 	private void initPackets() {
-		this.registerFactory(KeriousPacket.SNAPSHOT_TYPE, new Pool<SnapshotPacket>() {
+		this.registerPacketType(KeriousPacket.TypeSnapshot, new Pool<SnapshotPacket>() {
 			protected SnapshotPacket instantiate() {
 				return new SnapshotPacket();
 			}
 		});
 		
-		this.registerFactory(KeriousPacket.CONNECTION_TYPE, new Pool<ConnectionPacket>() {
+		this.registerPacketType(KeriousPacket.TypeConnection, new Pool<ConnectionPacket>() {
 			protected ConnectionPacket instantiate() {
 				return new ConnectionPacket();
 			}
 		});
 		
-		this.registerFactory(KeriousPacket.KEEP_ALIVE_TYPE, new Pool<KeepAlivePacket>() {
+		this.registerPacketType(KeriousPacket.TypeKeepAlive, new Pool<KeepAlivePacket>() {
 			protected KeepAlivePacket instantiate() {
 				return new KeepAlivePacket();
 			}
 		});
+		this.registerPacketType(KeriousPacket.TypeRequest, new Pool<RequestPacket>() {
+			protected RequestPacket instantiate() {
+				return new RequestPacket();
+			}
+		});
+		this.registerPacketType(KeriousPacket.TypeWorldInformations, new Pool<WorldInformationsPacket>() {
+			protected WorldInformationsPacket instantiate() {
+				return new WorldInformationsPacket();
+			}
+		});
+	}
+	
+	public <T extends KeriousPacket> void registerPacketType(byte packetType, Pool<T> packetPool) {
+		this.registerFactory(packetType, packetPool);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -69,25 +88,47 @@ public class KeriousProtocol extends FactoryManager implements INetworkProtocol 
 	}
 	
 	final public ConnectionPacket createConnectionPacket(byte connectionType) {
-		ConnectionPacket connectionPacket = (ConnectionPacket)this.createPacket(KeriousPacket.CONNECTION_TYPE);
+		ConnectionPacket connectionPacket = (ConnectionPacket)this.createPacket(KeriousPacket.TypeConnection);
 		connectionPacket.connectionRequest = connectionType;
 		
 		return connectionPacket;
 	}
 	
 	final public KeepAlivePacket createKeepAlivePacket() {
-		KeepAlivePacket packet = (KeepAlivePacket)this.createPacket(KeriousPacket.KEEP_ALIVE_TYPE);
+		KeepAlivePacket packet = (KeepAlivePacket)this.createPacket(KeriousPacket.TypeKeepAlive);
 		
 		return packet;
 	}
 	
-	final public EntityModel createModel(int entityType) {
-		if (this.entityManager == null) {
-			throw new KeriousException("Unable to creaty entity model: No entity manager was set in the KeriousProtocol");
+	final public WorldInformationsPacket createWorldInformationsPacket() {
+		WorldInformationsPacket packet = (WorldInformationsPacket)this.createPacket(KeriousPacket.TypeWorldInformations);
+		
+		return packet;
+	}
+
+	final public RequestPacket createRequestPacket(byte request) {
+		final RequestPacket packet = (RequestPacket)this.createPacket(KeriousPacket.TypeRequest);
+		
+		packet.request = request;
+		
+		return packet;
+	}
+	
+	final public Event createEvent(byte eventType) {
+		if (this.eventCreator == null) {
+			throw new KeriousException("No event creator was set in the KeriousProtocol"); 
+		}
+		
+		return this.eventCreator.createEvent(eventType);
+	}
+	
+	final public EntityModel createEntityModel(byte entityType) {
+		if (this.entityModelCreator == null) {
+			throw new KeriousException("Unable to creaty entity model: No entity model creator was set in the KeriousProtocol");
 		}
 		
 		try {
-			return this.entityManager.createEntityModel(entityType);
+			return this.entityModelCreator.createEntityModel(entityType);
 		} catch (EntityException e) {
 			throw new KeriousException("Unable to create entity model: " + e.getMessage());
 		}
@@ -124,15 +165,19 @@ public class KeriousProtocol extends FactoryManager implements INetworkProtocol 
 	// GETTERS/SETTERS
 	////////////////
 	
-	public EntityManager getEntityManager() {
-		return entityManager;
+	public EntityModelCreator getEntityModelCreator() {
+		return entityModelCreator;
 	}
 
-	/**
-	 * Set the EntityManager that is necessary to deserialize packets that use EntityModel
-	 * @param entityManager
-	 */
-	public void setEntityManager(EntityManager entityManager) {
-		this.entityManager = entityManager;
+	public void setEntityModelCreator(EntityModelCreator entityModelCreator) {
+		this.entityModelCreator = entityModelCreator;
+	}
+
+	public EventCreator getEventCreator() {
+		return eventCreator;
+	}
+
+	public void setEventCreator(EventCreator eventCreator) {
+		this.eventCreator = eventCreator;
 	}
 }

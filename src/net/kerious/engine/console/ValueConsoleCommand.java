@@ -118,4 +118,16 @@ public abstract class ValueConsoleCommand<T> extends AbstractConsoleCommand {
 		
 		this.truncateValue();
 	}
+	
+	public String getValueAsString() {
+		if (this.value == null) {
+			return "null";
+		}
+		
+		return this.value.toString();
+	}
+	
+	public boolean isValueCommand() {
+		return true;
+	}
 }

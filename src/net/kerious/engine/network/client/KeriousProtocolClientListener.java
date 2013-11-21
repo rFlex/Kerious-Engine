@@ -9,11 +9,15 @@
 
 package net.kerious.engine.network.client;
 
+import net.kerious.engine.network.protocol.packet.WorldInformationsPacket;
+import net.kerious.engine.world.World;
+
 public interface KeriousProtocolClientListener {
 
-	boolean shouldAcceptConnection(KeriousProtocolClient keriousClient, String ip, int port);
-	void onDisconnected(KeriousProtocolClient keriousClient, String ip, int port, String reason);
-	void onConnected(KeriousProtocolClient keriousClient, String ip, int port);
-	void onConnectionFailed(KeriousProtocolClient keriousClient, String ip, int port, Exception thrownException);
+	World createWorld(WorldInformationsPacket worldInformations);
+	
+	void onDisconnected(KeriousProtocolAbstract keriousClient, String ip, int port, String reason);
+	void onConnected(KeriousProtocolAbstract keriousClient, String ip, int port);
+	void onConnectionFailed(KeriousProtocolAbstract keriousClient, String ip, int port, String reason);
 	
 }

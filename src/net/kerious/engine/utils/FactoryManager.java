@@ -39,6 +39,10 @@ public class FactoryManager {
 		this.factories.put(key, factory);
 	}
 	
+	protected void unregisterFactory(int key) {
+		this.factories.remove(key);
+	}
+	
 	protected Object createObject(int key) {
 		Pool pool = this.factories.get(key);
 		

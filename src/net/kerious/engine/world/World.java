@@ -10,13 +10,18 @@
 package net.kerious.engine.world;
 
 import net.kerious.engine.KeriousEngine;
+import net.kerious.engine.console.Console;
 import net.kerious.engine.controllers.ViewController;
 import net.kerious.engine.entity.Entity;
 import net.kerious.engine.entity.EntityException;
 import net.kerious.engine.entity.EntityManager;
 import net.kerious.engine.entity.EntityManagerListener;
+import net.kerious.engine.network.protocol.KeriousProtocol;
+import net.kerious.engine.network.protocol.packet.KeriousPacket;
+import net.kerious.engine.player.PlayerManager;
 import net.kerious.engine.skin.SkinManager;
 import net.kerious.engine.utils.TemporaryUpdatable;
+import net.kerious.engine.world.event.EventFactory;
 
 import com.badlogic.gdx.utils.SnapshotArray;
 
@@ -30,10 +35,14 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 	final private SnapshotArray<Entity> entities;
 	final private EntityManager entityManager;
 	final private SkinManager skinManager;
+	final private EventFactory eventFactory;
+	final private Console console;
+	final private PlayerManager playerManager;
 	final private boolean renderingEnabled;
 	final private boolean hasAuthority;
 	private WorldListener listener;
 	private boolean addedToEngine;
+	private boolean ready;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -48,14 +57,26 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 		this.entities = new SnapshotArray<Entity>(true, 64, Entity.class);
 		this.skinManager = new SkinManager(hasAuthority);
 		this.entityManager = new EntityManager();
+		this.eventFactory = new EventFactory();
+		this.console = new Console();
+		this.playerManager = this.createPlayerManager();
 		
 		this.entityManager.setListener(this);
+		this.ready = true;
 	}
 
 	////////////////////////
 	// METHODS
 	////////////////
 
+	/**
+	 * Override this to return your own implementation of the PlayerManager
+	 * @return
+	 */
+	protected PlayerManager createPlayerManager() {
+		return new PlayerManager();
+	}
+	
 	/**
 	 * Register the world to the engine so it starts to update itself
 	 */
@@ -134,6 +155,26 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 		}
 	}
 	
+	public void markAsReady() {
+		if (this.listener != null) {
+			this.listener.onWorldReady(this);
+		}
+	}
+	
+	public void markAsNotReady() {
+		this.ready = false;
+	}
+	
+	/**
+	 * Ask the world to generate the command packet on the client
+	 * If nothing is returned, a keep alive packet will be send instead by the protocol
+	 * @param protocol
+	 * @return
+	 */
+	public KeriousPacket generateCommandPacket(KeriousProtocol protocol) {
+		return null;
+	}
+	
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
@@ -146,6 +187,10 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 	
 	public boolean hasAuthority() {
 		return this.hasAuthority;
+	}
+	
+	public Console getConsole() {
+		return this.console;
 	}
 	
 	public SkinManager getSkinManager() {
@@ -163,12 +208,28 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 	public WorldListener getListener() {
 		return listener;
 	}
+	
+	public PlayerManager getPlayerManager() {
+		return this.playerManager;
+	}
 
 	public void setListener(WorldListener listener) {
 		this.listener = listener;
+		
+		if (this.listener != null && this.ready) {
+			this.listener.onWorldReady(this);
+		}
 	}
 	
 	public int getEntitiesCount() {
 		return this.entities.size;
+	}
+	
+	public EventFactory getEventFactory() {
+		return this.eventFactory;
+	}
+
+	public boolean isReady() {
+		return ready;
 	}
 }

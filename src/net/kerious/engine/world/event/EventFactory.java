@@ -10,18 +10,14 @@
 package net.kerious.engine.world.event;
 
 import me.corsin.javatools.misc.Pool;
+import net.kerious.engine.utils.FactoryManager;
 
-import com.badlogic.gdx.utils.IntMap;
-
-@SuppressWarnings({"rawtypes", "unchecked"})
-public class EventFactory {
+public class EventFactory extends FactoryManager implements EventCreator {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 	
-	private IntMap<Pool<Event>> eventsType;
-
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
@@ -35,26 +31,17 @@ public class EventFactory {
 	////////////////
 	
 	public <T extends Event> void registerEventType(byte eventType, Pool<T> pool) {
-		this.eventsType.put((int)eventType, (Pool)pool);
+		this.registerFactory(eventType, pool);
 	}
 	
 	public void unregisterEventType(byte eventType) {
-		this.eventsType.remove(eventType);
+		this.unregisterFactory(eventType);
 	}
-	
-//	public KeriousSerializableData create
-	
-//	public Event createEvent() {
-//		Event event = this.eventsPool.obtain();
-//		
-//		return event;
-//	}
-//	
-//	public Event createEvent(byte eventType) {
-//		Event event = this.createEvent();
-//		
-//		return event;
-//	}
+
+	@Override
+	public Event createEvent(byte eventType) {
+		return (Event)this.createObject(eventType);
+	}
 
 	////////////////////////
 	// GETTERS/SETTERS

@@ -9,6 +9,10 @@
 
 package net.kerious.engine.network.protocol.packet;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
+import net.kerious.engine.network.protocol.KeriousProtocol;
 import net.kerious.engine.network.protocol.KeriousSerializableData;
 
 public abstract class KeriousPacket extends KeriousSerializableData {
@@ -17,13 +21,22 @@ public abstract class KeriousPacket extends KeriousSerializableData {
 	// VARIABLES
 	////////////////
 
-	public static final byte INFORMATION_TYPE = 1;
-	public static final byte CONNECTION_TYPE = 2;
-	public static final byte PLAYER_COMMAND_TYPE = 3;
-	public static final byte KEEP_ALIVE_TYPE = 4;
-	public static final byte SNAPSHOT_TYPE = 10;
+	public static final byte TypeInformation = 1;
+	public static final byte TypeConnection = 2;
+	public static final byte TypePlayerCommand = 3;
+	public static final byte TypeKeepAlive = 4;
+	public static final byte TypeSnapshot = 5;
+	public static final byte TypeRequest = 6;
+	public static final byte TypeWorldInformations = 7;
+	
+	public static final byte OptionIgnoreIfLost = 0x0;
+	public static final byte OptionResendIfLost = 0x1;
 
 	final public byte packetType;
+	public int sequence;
+	public int lastSequenceReceived;
+	public int ack;
+	public byte options;
 	
 	////////////////////////
 	// CONSTRUCTORS
@@ -37,6 +50,38 @@ public abstract class KeriousPacket extends KeriousSerializableData {
 	// METHODS
 	////////////////
 	
+	@Override
+	public void deserialize(KeriousProtocol protocol, ByteBuffer buffer) throws IOException {
+		this.sequence = buffer.getInt();
+		this.lastSequenceReceived = buffer.getInt();
+		this.ack = buffer.getInt();
+	}
+	
+	@Override
+	public void serialize(KeriousProtocol protocol, ByteBuffer buffer) {
+		buffer.putInt(this.sequence);
+		buffer.putInt(this.lastSequenceReceived);
+		buffer.putInt(this.ack);
+	}
+	
+	@Override
+	public void reset() {
+		super.reset();
+		
+		this.sequence = 0;
+		this.lastSequenceReceived = 0;
+		this.ack = 0;
+		this.options = 0;
+	}
+
+	@Override
+	public void copyTo(KeriousSerializableData object) {
+		KeriousPacket keriousPacket = (KeriousPacket)object;
+		
+		keriousPacket.sequence = this.sequence;
+		keriousPacket.lastSequenceReceived = this.lastSequenceReceived;
+		keriousPacket.ack = this.ack;
+	}
 	
 	////////////////////////
 	// GETTERS/SETTERS

@@ -9,10 +9,12 @@
 
 package net.kerious.engine.network.protocol;
 
-public interface KeriousProtocolPeerListener {
+import net.kerious.engine.network.client.ServerPeer;
 
-	void onConnectionFailed(KeriousProtocolPeer peer, Exception exception);
-	void onConnected(KeriousProtocolPeer peer);
-	void onDisconnected(KeriousProtocolPeer peer, String reason);
+public interface ServerPeerListener {
+
+	void onConnected(ServerPeer peer);
+	void onConnectionFailed(ServerPeer peer, String reason);
+	void onDisconnected(ServerPeer peer, String reason);
 	
 }

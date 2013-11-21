@@ -16,6 +16,7 @@ public interface WorldListener {
 	
 	void willUpdateWorld(World world);
 	void didUpdateWorld(World world);
+	void onWorldReady(World world);
 	void onEntityCreated(World world, Entity entity);
 	void onEntityDestroyed(World world, int entityId);
 	

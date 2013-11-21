@@ -9,8 +9,7 @@
 
 package net.kerious.engine.console;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.badlogic.gdx.utils.ObjectMap;
 
 public class Console {
 
@@ -18,7 +17,7 @@ public class Console {
 	// VARIABLES
 	////////////////
 	
-	private Map<String, ConsoleCommand> commands;
+	private ObjectMap<String, ConsoleCommand> commands;
 	private ConsolePrinter printer;
 	
 	////////////////////////
@@ -26,7 +25,7 @@ public class Console {
 	////////////////
 	
 	public Console() {
-		this.commands = new HashMap<String, ConsoleCommand>();
+		this.commands = new ObjectMap<String, ConsoleCommand>();
 	}
 
 	////////////////////////
@@ -39,7 +38,7 @@ public class Console {
 		}
 
 		consoleCommand.setConsole(this);
-		return this.commands.remove(consoleCommand) != null;
+		return this.commands.remove(consoleCommand.getName()) != null;
 	}
 	
 	public void registerCommand(ConsoleCommand consoleCommand) {
@@ -73,7 +72,7 @@ public class Console {
 		if (consoleCommand != null) {
 			consoleCommand.handleInput(input);
 		} else {
-			this.print("Unknwon command [" + commandName + "]");
+			this.print("Unknown command [" + commandName + "]");
 		}
 	}
 	
@@ -95,5 +94,9 @@ public class Console {
 
 	public void setPrinter(ConsolePrinter printer) {
 		this.printer = printer;
+	}
+	
+	public ObjectMap<String, ConsoleCommand> getCommands() {
+		return this.commands;
 	}
 }

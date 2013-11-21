@@ -14,6 +14,9 @@ public interface ConsoleCommand {
 	void handleInput(String input);
 	String getName();
 	
+	boolean isValueCommand();
+	String getValueAsString();
+	
 	void setConsole(Console console);
 	Console getConsole();
 

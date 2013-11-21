@@ -22,6 +22,8 @@ public abstract class KeriousSerializableData extends PoolableImpl {
 	
 	public int retainCount;
 	
+	private StringBuilder sb = new StringBuilder();
+	
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
@@ -32,6 +34,37 @@ public abstract class KeriousSerializableData extends PoolableImpl {
 	////////////////////////
 	// METHODS
 	////////////////
+	
+	/**
+	 * Utility method to get a string
+	 * @param buffer
+	 * @return
+	 */
+	final protected String getString(ByteBuffer buffer) throws IOException {
+		this.sb.setLength(0);
+		
+		char c;
+		while ((c = buffer.getChar()) != 0) {
+			sb.append(c);
+		}
+		
+		return sb.toString();
+	}
+	
+	/**
+	 * Utility method to put a string
+	 * @param str
+	 */
+	final protected void putString(ByteBuffer buffer, String str) {
+		if (str != null) {
+			for (int i = 0, length = str.length(); i < length; i++) {
+				char c = str.charAt(i);
+				buffer.putChar(c);
+			}
+		}
+		
+		buffer.putChar((char)0);
+	}
 	
 	public KeriousSerializableData clone() {
 		KeriousSerializableData element = (KeriousSerializableData)this.getPool().obtain();

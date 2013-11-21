@@ -11,11 +11,8 @@ package net.kerious.engine.network.protocol;
 
 import java.net.InetAddress;
 
-import net.kerious.engine.KeriousException;
 import net.kerious.engine.network.peer.NetworkPeer;
-import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
-import net.kerious.engine.network.protocol.packet.KeriousReliablePacket;
 import net.kerious.engine.utils.TemporaryUpdatable;
 
 public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatable {
@@ -24,23 +21,16 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 	// VARIABLES
 	////////////////
 	
-	public static final int MAX_CONNECTION_ATTEMPTS = 3;
-	public static final float CONNECTION_ATTEMPT_WAITING_TIME = 1f;
 	public static final int ACK_SIZE = 32;
 	
-	private KeriousProtocol protocol;
-	private boolean connected;
+	protected KeriousProtocol protocol;
 	private boolean expired;
-	private boolean packetSentThisFrame;
-	private boolean readyToReceiveSnapshots;
-	private int connectionAttempt;
-	private float nextConnectionAttempt;
 	private float timeout;
 	private int sequence;
 	private int lastSequenceReceived;
 	private int ack;
-	private KeriousReliablePacket[] sentPackets;
-	private KeriousProtocolPeerListener listener;
+	private KeriousPacket[] sentPackets;
+	private String disconnectReason;
 	
 	public int toSkip;
 	
@@ -50,58 +40,24 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 	
 	public KeriousProtocolPeer(InetAddress address, int port) {
 		super(address, port, null);
-	}
-	
-	public KeriousProtocolPeer(String ip, int port) {
-		super(ip, port);
-	}
-	
-	public KeriousProtocolPeer(NetworkPeer networkPeer) {
-		super(networkPeer);
-	}
-	
-	@Override
-	protected void commonInit() {
-		super.commonInit();
 		
-		this.sentPackets = new KeriousReliablePacket[ACK_SIZE];
+		this.sentPackets = new KeriousPacket[ACK_SIZE];
 	}
-
+	
 	////////////////////////
 	// METHODS
 	////////////////
 	
 	public void update(float deltaTime) {
-		if (!this.connected) {
-			nextConnectionAttempt -= deltaTime;
-			if (nextConnectionAttempt <= 0) {
-				if (connectionAttempt == MAX_CONNECTION_ATTEMPTS) {
-					if (this.listener != null) {
-						this.listener.onConnectionFailed(this, new KeriousException("Connection failed after " + connectionAttempt + " retries"));
-					}
-					this.expired = true;
-				} else {
-					this.sendConnectionPacket();
-					nextConnectionAttempt = CONNECTION_ATTEMPT_WAITING_TIME;
-					connectionAttempt++;
-				}
-			}
-		} else {
-			this.timeout -= deltaTime;
-			
-			if (this.timeout < 0) {
-				this.expired = true;
-			} else {
-				if (!this.packetSentThisFrame) {
-					this.sendKeepAlivePacket();
-				}
-			}
-		}
+		this.timeout -= deltaTime;
 		
-		this.packetSentThisFrame = false;
+		if (this.timeout < 0) {
+			this.expired = true;
+			this.disconnectReason = "Connection timed out";
+		}
 	}
 	
-	final private void addReliablePacketToSentPacket(KeriousReliablePacket packet) {
+	final private void addPacketToSentPacket(KeriousPacket packet) {
 		this.sequence++;
 		
 		packet.ack = this.ack;
@@ -109,8 +65,8 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 		packet.lastSequenceReceived = this.lastSequenceReceived;
 		
 		// Shifting the sentPackets array
-		KeriousReliablePacket lastPacket = packet;
-		KeriousReliablePacket currentPacket = null;
+		KeriousPacket lastPacket = packet;
+		KeriousPacket currentPacket = null;
 		for (int i = 0; i < ACK_SIZE; i++) {
 			currentPacket = this.sentPackets[i];
 			this.sentPackets[i] = lastPacket;
@@ -129,11 +85,7 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 	public void send(Object packet) {
 		KeriousPacket keriousPacket = (KeriousPacket)packet;
 		
-		if (keriousPacket instanceof KeriousReliablePacket) {
-			this.addReliablePacketToSentPacket((KeriousReliablePacket)keriousPacket);
-		}
-		
-		this.packetSentThisFrame = true;
+		this.addPacketToSentPacket(keriousPacket);
 		
 		if (this.toSkip <= 0) {
 			super.send(packet);
@@ -143,7 +95,7 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 		
 	}
 	
-	private void sendKeepAlivePacket() {
+	public void sendKeepAlivePacket() {
 		KeriousPacket packet = this.protocol.createKeepAlivePacket();
 
 		this.send(packet);
@@ -151,25 +103,6 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 		packet.release();
 	}
 	
-	private void sendConnectionPacket() {
-		KeriousPacket packet = this.protocol.createConnectionPacket(ConnectionPacket.CONNECTION_ASK);
-		
-		this.send(packet);
-		
-		packet.release();
-	}
-	
-	public void cancelConnectionAttempt() {
-		this.expired = true;
-		this.connectionAttempt = 0;
-	}
-	
-	public void initiateConnection() {
-		this.connected = false;
-		this.connectionAttempt = 0;
-		this.nextConnectionAttempt = 0;
-	}
-
 	final private void updateAck(int sequence) {
 		int lastSequence = this.lastSequenceReceived;
 		
@@ -193,7 +126,7 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 		int ackOffset = -1;
 		
 		while (offset < ACK_SIZE) {
-			KeriousReliablePacket packet = this.sentPackets[offset];
+			KeriousPacket packet = this.sentPackets[offset];
 			
 			if (packet != null) {
 				boolean packetReceived;
@@ -224,18 +157,21 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 	 * Called when the packet has been received by the peer
 	 * @param packet
 	 */
-	protected void packetReceived(KeriousReliablePacket packet) {
+	protected void packetReceived(KeriousPacket packet) {
 	}
 	
 	/**
 	 * Called when the packet has not been received by the peer
 	 * @param packet
 	 */
-	protected void packetLost(KeriousReliablePacket packet) {
+	protected void packetLost(KeriousPacket packet) {
+		if ((packet.options & KeriousPacket.OptionResendIfLost) == 0x1) {
+			this.send(packet);
+		}
 		System.out.println("Packet lost " + this.getPort());
 	}
 	
-	final private void handleReliablePacketReceived(KeriousReliablePacket reliablePacket) {
+	final private void updateAckInformations(KeriousPacket reliablePacket) {
 		int remoteAck = reliablePacket.ack;
 		int remoteSequence = reliablePacket.sequence;
 		int lastSequenceReceived = reliablePacket.lastSequenceReceived;
@@ -243,8 +179,6 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 		if (remoteSequence > this.lastSequenceReceived) {
 			this.updateAck(remoteSequence);
 			this.analyzeAck(lastSequenceReceived, remoteAck);
-		} else {
-			// The packet is late, discarding it
 		}
 	}
 	
@@ -255,54 +189,13 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 	 * @return
 	 */
 	public boolean handlePacketReceived(KeriousPacket packet) {
-		if (packet instanceof KeriousReliablePacket) {
-			this.handleReliablePacketReceived((KeriousReliablePacket)packet);
-		}
-		
-		switch (packet.packetType) {
-		case KeriousPacket.CONNECTION_TYPE:
-			ConnectionPacket connectionPacket = (ConnectionPacket)packet;
-			
-			switch (connectionPacket.connectionRequest) {
-			case ConnectionPacket.CONNECTION_ASK:
-				// Resend the accepted packet
-				this.send(this.protocol.createConnectionPacket(ConnectionPacket.CONNECTION_RESP_ACCEPTED));
-				break;
-			case ConnectionPacket.CONNECTION_RESP_ACCEPTED:
-				if (!this.connected) {
-					this.connected = true;
-					if (this.listener != null) {
-						this.listener.onConnected(this);
-					}
-				}
-				break;
-			case ConnectionPacket.CONNECTION_RESP_REFUSED:
-				this.cancelConnectionAttempt();
-				if (this.listener != null) {
-					this.listener.onConnectionFailed(this, new KeriousException("Connection refused by the remote server"));
-				}
-				break;
-			default:
-				return false;
-			}
-			break;
-		default:
-			return false;
-		}
-		return true;
+		this.updateAckInformations(packet);
+		return false;
 	}
 
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
-
-	public boolean isConnected() {
-		return connected;
-	}
-
-	public void setConnected(boolean connected) {
-		this.connected = connected;
-	}
 
 	public KeriousProtocol getProtocol() {
 		return protocol;
@@ -317,6 +210,10 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 		return this.expired;
 	}
 	
+	public void setExpired(boolean value) {
+		this.expired = value;
+	}
+
 	public float getTimeout() {
 		return this.timeout;
 	}
@@ -324,21 +221,12 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 	public void setTimeout(float timeout) {
 		this.timeout = timeout;
 	}
-
-	public boolean isReadyToReceiveSnapshots() {
-		return readyToReceiveSnapshots;
+	
+	public void setDisconnectReason(String value) {
+		this.disconnectReason = value;
 	}
 
-	public void setReadyToReceiveSnapshots(boolean readyToReceiveSnapshots) {
-		this.readyToReceiveSnapshots = readyToReceiveSnapshots;
+	public String getDisconnectReason() {
+		return disconnectReason;
 	}
-
-	public KeriousProtocolPeerListener getListener() {
-		return listener;
-	}
-
-	public void setListener(KeriousProtocolPeerListener listener) {
-		this.listener = listener;
-	}
-
 }

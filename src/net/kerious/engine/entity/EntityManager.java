@@ -10,11 +10,12 @@
 package net.kerious.engine.entity;
 
 import net.kerious.engine.entity.model.EntityModel;
+import net.kerious.engine.entity.model.EntityModelCreator;
 
 import com.badlogic.gdx.utils.IntMap;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
-public class EntityManager {
+public class EntityManager implements EntityModelCreator {
 	
 	////////////////////////
 	// VARIABLES
@@ -119,7 +120,7 @@ public class EntityManager {
 		}
 	}
 	
-	public EntityModel createEntityModel(int entityType) throws EntityException {
+	public EntityModel createEntityModel(byte entityType) throws EntityException {
 		EntityCreator entityCreator = this.getEntityCreator(entityType);
 		
 		return entityCreator.createEntityModel();
