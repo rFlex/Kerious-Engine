@@ -21,7 +21,8 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 	// VARIABLES
 	////////////////
 	
-	public static final int ACK_SIZE = 32;
+	public static final float TimeoutTime = 3;
+	public static final int AckSize = 32;
 	
 	protected KeriousProtocol protocol;
 	private boolean expired;
@@ -41,7 +42,8 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 	public KeriousProtocolPeer(InetAddress address, int port) {
 		super(address, port, null);
 		
-		this.sentPackets = new KeriousPacket[ACK_SIZE];
+		this.sentPackets = new KeriousPacket[AckSize];
+		this.timeout = TimeoutTime;
 	}
 	
 	////////////////////////
@@ -67,7 +69,7 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 		// Shifting the sentPackets array
 		KeriousPacket lastPacket = packet;
 		KeriousPacket currentPacket = null;
-		for (int i = 0; i < ACK_SIZE; i++) {
+		for (int i = 0; i < AckSize; i++) {
 			currentPacket = this.sentPackets[i];
 			this.sentPackets[i] = lastPacket;
 			lastPacket = currentPacket;
@@ -108,7 +110,7 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 		
 		int offset = sequence - lastSequence;
 		
-		if (offset < ACK_SIZE) {
+		if (offset < AckSize) {
 			int oldAck = this.ack;
 			int newAck = (oldAck << offset) | 0x1 << offset - 1;
 			
@@ -125,7 +127,7 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 		int offset = this.sequence - lastSequenceReceive;
 		int ackOffset = -1;
 		
-		while (offset < ACK_SIZE) {
+		while (offset < AckSize) {
 			KeriousPacket packet = this.sentPackets[offset];
 			
 			if (packet != null) {
@@ -171,7 +173,7 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 		System.out.println("Packet lost " + this.getPort());
 	}
 	
-	final private void updateAckInformations(KeriousPacket reliablePacket) {
+	final private boolean updateAckInformations(KeriousPacket reliablePacket) {
 		int remoteAck = reliablePacket.ack;
 		int remoteSequence = reliablePacket.sequence;
 		int lastSequenceReceived = reliablePacket.lastSequenceReceived;
@@ -179,7 +181,9 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 		if (remoteSequence > this.lastSequenceReceived) {
 			this.updateAck(remoteSequence);
 			this.analyzeAck(lastSequenceReceived, remoteAck);
+			return true;
 		}
+		return false;
 	}
 	
 	/**
@@ -189,7 +193,11 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 	 * @return
 	 */
 	public boolean handlePacketReceived(KeriousPacket packet) {
-		this.updateAckInformations(packet);
+		this.timeout = TimeoutTime;
+		if (!this.updateAckInformations(packet)) {
+			return true;
+		}
+		
 		return false;
 	}
 

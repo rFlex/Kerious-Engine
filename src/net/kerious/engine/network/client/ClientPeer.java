@@ -11,11 +11,15 @@ package net.kerious.engine.network.client;
 
 import java.net.InetAddress;
 
+import net.kerious.engine.entity.Entity;
 import net.kerious.engine.network.protocol.KeriousProtocolPeer;
 import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.network.protocol.packet.RequestPacket;
+import net.kerious.engine.network.protocol.packet.SnapshotPacket;
 import net.kerious.engine.network.protocol.packet.WorldInformationsPacket;
+import net.kerious.engine.player.Player;
+import net.kerious.engine.world.World;
 
 public class ClientPeer extends KeriousProtocolPeer {
 
@@ -24,6 +28,7 @@ public class ClientPeer extends KeriousProtocolPeer {
 	////////////////
 	
 	private int playerId;
+	private String name;
 	private PeerServerDelegate delegate;
 	private boolean readyToReceiveSnapshots;
 
@@ -41,7 +46,9 @@ public class ClientPeer extends KeriousProtocolPeer {
 	
 	@Override
 	public boolean handlePacketReceived(KeriousPacket packet) {
-		super.handlePacketReceived(packet);
+		if (super.handlePacketReceived(packet)) {
+			return true;
+		}
 
 		switch (packet.packetType) {
 		case KeriousPacket.TypeConnection:
@@ -85,6 +92,22 @@ public class ClientPeer extends KeriousProtocolPeer {
 		}
 		return true;
 	}
+	
+	public void sendSnapshot(World world) {
+//		this.sendKeepAlivePacket();
+		
+		SnapshotPacket snapshotPacket = this.protocol.createSnapshotPacket();
+		
+		for (Entity<?, ?> entity : world.getEntityManager().getEntites()) {
+			snapshotPacket.addModel(entity.getModel());
+		}
+
+		for (Player player : world.getPlayerManager().getPlayers()) {
+			snapshotPacket.addPlayer(player);
+		}
+		
+		this.send(snapshotPacket);
+	}
 
 	////////////////////////
 	// GETTERS/SETTERS
@@ -112,5 +135,13 @@ public class ClientPeer extends KeriousProtocolPeer {
 
 	public void setPlayerId(int playerId) {
 		this.playerId = playerId;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 }

@@ -50,7 +50,8 @@ public abstract class KeriousEngine implements Disposable {
 		this.taskQueue = new TaskQueue();
 		this.console = new Console();
 		this.updatables = new TemporaryUpdatableArray<TemporaryUpdatable>(TemporaryUpdatable.class);
-		this.globalSkinManager = new SkinManager(true);
+		this.globalSkinManager = new SkinManager();
+		this.globalSkinManager.setAutoAttributeId(true);
 		this.renderer = renderer;
 		this.fileHandleResolver = fileHandleResolver;
 		this.resourceManager = new ResourceManager(this, fileHandleResolver);
@@ -76,9 +77,7 @@ public abstract class KeriousEngine implements Disposable {
 	}
 	
 	public void draw() {
-		if (this.keyView != null) {
-			this.renderer.render(this.keyView);
-		}
+		this.renderer.render(this.keyView);
 	}
 	
 	public void addTemporaryUpdatable(TemporaryUpdatable updatable) {

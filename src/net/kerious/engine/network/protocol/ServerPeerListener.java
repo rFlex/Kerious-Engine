@@ -11,9 +11,14 @@ package net.kerious.engine.network.protocol;
 
 import net.kerious.engine.network.client.ServerPeer;
 
+import com.badlogic.gdx.utils.ObjectMap;
+
 public interface ServerPeerListener {
 
-	void onConnected(ServerPeer peer);
+	void onReceivedWorldInformations(ObjectMap<String, String> informations, boolean shouldLoadWorld);
+	void onRemoteIsLoadingWorld();
+	void onRemoteFailedToLoadWorld(String reason);
+	void onConnected(ServerPeer peer, int playerId);
 	void onConnectionFailed(ServerPeer peer, String reason);
 	void onDisconnected(ServerPeer peer, String reason);
 	

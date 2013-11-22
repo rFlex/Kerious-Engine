@@ -9,6 +9,8 @@
 
 package net.kerious.engine.world;
 
+import java.io.Closeable;
+
 import net.kerious.engine.KeriousEngine;
 import net.kerious.engine.console.Console;
 import net.kerious.engine.controllers.ViewController;
@@ -19,6 +21,9 @@ import net.kerious.engine.entity.EntityManagerListener;
 import net.kerious.engine.network.protocol.KeriousProtocol;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.player.PlayerManager;
+import net.kerious.engine.resource.ResourceBundle;
+import net.kerious.engine.resource.ResourceBundleListener;
+import net.kerious.engine.resource.ResourceManager;
 import net.kerious.engine.skin.SkinManager;
 import net.kerious.engine.utils.TemporaryUpdatable;
 import net.kerious.engine.world.event.EventFactory;
@@ -26,7 +31,7 @@ import net.kerious.engine.world.event.EventFactory;
 import com.badlogic.gdx.utils.SnapshotArray;
 
 @SuppressWarnings("rawtypes")
-public class World extends ViewController implements TemporaryUpdatable, EntityManagerListener {
+public class World extends ViewController implements TemporaryUpdatable, EntityManagerListener, ResourceBundleListener, Closeable {
 
 	////////////////////////
 	// VARIABLES
@@ -36,33 +41,36 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 	final private EntityManager entityManager;
 	final private SkinManager skinManager;
 	final private EventFactory eventFactory;
-	final private Console console;
 	final private PlayerManager playerManager;
-	final private boolean renderingEnabled;
-	final private boolean hasAuthority;
+	final private ResourceBundle resourceBundle;
+	private Console console;
 	private WorldListener listener;
 	private boolean addedToEngine;
-	private boolean ready;
+	private boolean renderingEnabled;
+	private boolean hasAuthority;
+	private boolean resourcesLoaded;
+	private boolean loadingResources;
+	private boolean failedLoadingResources;
+	private String loadingFailedReason;
 
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 	
-	public World(KeriousEngine engine, boolean renderingEnabled, boolean hasAuthority) {
+	public World(KeriousEngine engine) {
 		super(engine);
 		
-		this.renderingEnabled = renderingEnabled;
-		this.hasAuthority = hasAuthority;
-		
 		this.entities = new SnapshotArray<Entity>(true, 64, Entity.class);
-		this.skinManager = new SkinManager(hasAuthority);
+		this.skinManager = new SkinManager();
 		this.entityManager = new EntityManager();
 		this.eventFactory = new EventFactory();
-		this.console = new Console();
 		this.playerManager = this.createPlayerManager();
+		this.resourceBundle = new ResourceBundle();
 		
 		this.entityManager.setListener(this);
-		this.ready = true;
+		this.resourcesLoaded = true;
+		this.setRenderingEnabled(true);
+		this.setHasAuthority(true);
 	}
 
 	////////////////////////
@@ -155,20 +163,58 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 		}
 	}
 	
-	public void markAsReady() {
-		if (this.listener != null) {
-			this.listener.onWorldReady(this);
+	public void beginLoadRessources() {
+		if (!this.loadingResources) {
+			this.loadingResources = true;
+			this.resourcesLoaded = false;
+			this.getEngine().getResourceManager().loadAsync(this.resourceBundle, this);
 		}
 	}
 	
-	public void markAsNotReady() {
-		this.ready = false;
+	public void unloadResources() {
+		if (this.resourcesLoaded || this.loadingResources) {
+			this.getEngine().getResourceManager().unload(this.resourceBundle);
+			this.resourcesLoaded = false;
+		}
+	}
+	
+	@Override
+	public void onLoadedItem(ResourceManager manager, ResourceBundle bundle, String fileName) {
+		
+	}
+
+	@Override
+	public void onLoaded(ResourceManager manager, ResourceBundle bundle) {
+		this.loadingResources = false;
+		this.resourcesLoaded = true;
+		this.failedLoadingResources = false;
+		this.loadingFailedReason = null;
+	}
+
+	@Override
+	public void onLoadingFailed(ResourceManager manager, ResourceBundle bundle, Throwable exception) {
+		this.failedLoadingResources = true;
+		this.loadingFailedReason = exception.getMessage();
+	}
+
+	@Override
+	public void onLoadingProgressChanged(ResourceManager manager, ResourceBundle bundle, float progressRatio) {
+		
+	}
+	
+
+	/**
+	 * Closes every resources held by the world
+	 */
+	@Override
+	public void close() {
+		this.detachView();
+		this.unloadResources();
 	}
 	
 	/**
-	 * Ask the world to generate the command packet on the client
-	 * If nothing is returned, a keep alive packet will be send instead by the protocol
-	 * @param protocol
+	 * This method is called on the client to generate a command packet that portrays the inputs
+	 * If not null, the client will send it otherwise it will send a keep alive instead
 	 * @return
 	 */
 	public KeriousPacket generateCommandPacket(KeriousProtocol protocol) {
@@ -189,8 +235,17 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 		return this.hasAuthority;
 	}
 	
+	public void setHasAuthority(boolean value) {
+		this.hasAuthority = value;
+		this.skinManager.setAutoAttributeId(value);
+	}
+	
 	public Console getConsole() {
 		return this.console;
+	}
+	
+	public void setConsole(Console console) {
+		this.console = console;
 	}
 	
 	public SkinManager getSkinManager() {
@@ -199,6 +254,10 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 
 	public boolean isRenderingEnabled() {
 		return renderingEnabled;
+	}
+	
+	public void setRenderingEnabled(boolean value) {
+		this.renderingEnabled = value;
 	}
 
 	public EntityManager getEntityManager() {
@@ -215,10 +274,6 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 
 	public void setListener(WorldListener listener) {
 		this.listener = listener;
-		
-		if (this.listener != null && this.ready) {
-			this.listener.onWorldReady(this);
-		}
 	}
 	
 	public int getEntitiesCount() {
@@ -229,7 +284,20 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 		return this.eventFactory;
 	}
 
-	public boolean isReady() {
-		return ready;
+	public boolean isResourcesLoaded() {
+		return resourcesLoaded;
 	}
+
+	public ResourceBundle getResourceBundle() {
+		return resourceBundle;
+	}
+
+	public boolean hasFailedLoadingResources() {
+		return failedLoadingResources;
+	}
+
+	public String getFailedLoadingResourcesReason() {
+		return loadingFailedReason;
+	}
+
 }

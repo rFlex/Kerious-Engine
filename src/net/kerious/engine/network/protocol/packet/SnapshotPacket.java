@@ -14,6 +14,7 @@ import java.nio.ByteBuffer;
 
 import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.network.protocol.KeriousProtocol;
+import net.kerious.engine.player.Player;
 import net.kerious.engine.world.event.Event;
 
 import com.badlogic.gdx.utils.Array;
@@ -24,6 +25,7 @@ public class SnapshotPacket extends KeriousPacket {
 	// VARIABLES
 	////////////////
 
+	private Array<Player> players;
 	private Array<EntityModel> models;
 	private Array<Event> events;
 	
@@ -33,8 +35,9 @@ public class SnapshotPacket extends KeriousPacket {
 	
 	public SnapshotPacket() {
 		super(TypeSnapshot);
-		this.models = new Array<EntityModel>(64);
-		this.events = new Array<Event>(64);
+		this.players = new Array<Player>(Player.class);
+		this.models = new Array<EntityModel>(EntityModel.class);
+		this.events = new Array<Event>(Event.class);
 	}
 
 	////////////////////////
@@ -53,20 +56,39 @@ public class SnapshotPacket extends KeriousPacket {
 		this.events.add(event);
 	}
 	
+	public void addPlayer(Player player) {
+		player.retain();
+		
+		this.players.add(player);
+	}
+	
 	@Override
 	public void deserialize(KeriousProtocol protocol, ByteBuffer buffer) throws IOException {
 		super.deserialize(protocol, buffer);
 		
 		int length = buffer.getInt();
 		for (int i = 0; i < length; i++) {
-			byte eventType = buffer.get();
-			this.models.add(protocol.createEntityModel(eventType));
+			byte modelType = buffer.get();
+			
+			EntityModel model = protocol.createEntityModel(modelType);
+			model.deserialize(protocol, buffer);
+			this.models.add(model);
 		}
 		
 		length = buffer.getInt();
 		for (int i = 0; i < length; i++) {
 			byte eventType = buffer.get();
-			this.events.add(protocol.createEvent(eventType));
+			
+			Event event = protocol.createEvent(eventType);
+			event.deserialize(protocol, buffer);
+			this.events.add(event);
+		}
+		
+		length = buffer.getInt();
+		for (int i = 0; i < length; i++) {
+			Player player = protocol.createPlayer();
+			player.deserialize(protocol, buffer);
+			this.players.add(player);
 		}
 	}
 
@@ -88,6 +110,13 @@ public class SnapshotPacket extends KeriousPacket {
 			Event event = events[i];
 			buffer.put(event.type);
 			event.serialize(protocol, buffer);
+		}
+		
+		buffer.putInt(this.players.size);
+		Player[] players = this.players.items;
+		for (int i = 0, length = this.players.size; i < length; i++) {
+			Player player = players[i];
+			player.serialize(protocol, buffer);
 		}
 	}
 	
@@ -112,6 +141,15 @@ public class SnapshotPacket extends KeriousPacket {
 		}
 		
 		this.events.size = 0;
+		
+		Player[] players = this.players.items;
+		for (int i = 0, length = this.players.size; i < length; i++) {
+			Player player = players[i];
+			player.release();
+			players[i] = null;
+		}
+		this.players.size = 0;
+		
 	}
 
 	////////////////////////

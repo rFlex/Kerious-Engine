@@ -268,7 +268,7 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 		return view;
 	}
 
-	public void setView(ViewType view) {
+	final private void setView(ViewType view) {
 		if (this.view != view) {
 			if (this.view != null) {
 				this.view.removeFromParentView();

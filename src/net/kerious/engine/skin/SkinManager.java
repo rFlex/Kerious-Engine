@@ -30,9 +30,8 @@ public class SkinManager {
 	// CONSTRUCTORS
 	////////////////
 	
-	public SkinManager(boolean autoAttributeId) {
+	public SkinManager() {
 		this.sequence = 1;
-		this.autoAttributeId = autoAttributeId;
 		this.skinsByName = new ObjectMap<String, Skin>();
 		this.skinsById = new IntMap<Skin>();
 		this.setDirectory(null);
@@ -151,5 +150,9 @@ public class SkinManager {
 		}
 		
 		this.directory = directory;
+	}
+	
+	public void setAutoAttributeId(boolean autoAttributeId) {
+		this.autoAttributeId = autoAttributeId;
 	}
 }

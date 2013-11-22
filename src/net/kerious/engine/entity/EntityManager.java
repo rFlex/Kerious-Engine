@@ -142,5 +142,9 @@ public class EntityManager implements EntityModelCreator {
 		this.listener = listener;
 	}
 	
+	public Iterable<Entity> getEntites() {
+		return this.entities.values();
+	}
+	
 
 }

@@ -13,18 +13,16 @@ import java.net.InetAddress;
 import java.net.SocketException;
 
 import me.corsin.javatools.misc.ValueHolder;
-import net.kerious.engine.KeriousEngine;
-import net.kerious.engine.console.ConsoleCommand;
 import net.kerious.engine.network.protocol.KeriousProtocolPeer;
 import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.utils.TemporaryUpdatableArray;
 
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntMap;
 import com.badlogic.gdx.utils.ObjectMap;
-import com.badlogic.gdx.utils.ObjectMap.Entry;
 
-public class KeriousProtocolServer extends KeriousProtocolAbstract implements PeerServerDelegate {
+public class ServerService extends AbstractKeriousProtocolService implements PeerServerDelegate {
 
 	////////////////////////
 	// VARIABLES
@@ -34,18 +32,19 @@ public class KeriousProtocolServer extends KeriousProtocolAbstract implements Pe
 	final private TemporaryUpdatableArray<ClientPeer> peersAsArray;
 	final private ValueHolder<String> refuseConnectionReasonVH;
 	private int playerIdSequence;
-	private KeriousProtocolServerDelegate delegate;
+	private ServerServiceDelegate delegate;
+	private ServerServiceListener listener;
 
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 
-	public KeriousProtocolServer(KeriousEngine engine) throws SocketException {
-		this(engine, 0);
+	public ServerService() throws SocketException {
+		this(0);
 	}
 
-	public KeriousProtocolServer(KeriousEngine engine, int port) throws SocketException {
-		super(engine, port);
+	public ServerService(int port) throws SocketException {
+		super(port);
 		
 		this.peersAsMap = new IntMap<ClientPeer>();
 		this.peersAsArray = new TemporaryUpdatableArray<ClientPeer>(ClientPeer.class);
@@ -104,12 +103,13 @@ public class KeriousProtocolServer extends KeriousProtocolAbstract implements Pe
 			peer.setProtocol(this.getProtocol());
 			peer.setGate(this.getGate());
 			peer.setDelegate(this);
+			peer.setName(name);
 			
 			this.peersAsArray.add(peer);
 			this.peersAsMap.put(hashCode, peer);
 			
-			if (this.world != null) {
-				this.world.getPlayerManager().addPlayer(this.playerIdSequence, name);
+			if (this.listener != null) {
+				this.listener.onPeerConnected(this, peer);
 			}
 		}
 		
@@ -120,8 +120,8 @@ public class KeriousProtocolServer extends KeriousProtocolAbstract implements Pe
 		this.peersAsArray.removeValue(peer, true);
 		this.peersAsMap.remove(peer.hashCode());
 		
-		if (this.world != null) {
-			this.world.getPlayerManager().removePlayer(peer.getPlayerId(), peer.getDisconnectReason());
+		if (this.listener != null) {
+			this.listener.onPeerDisconnected(this, peer);
 		}
 	}
 
@@ -140,7 +140,6 @@ public class KeriousProtocolServer extends KeriousProtocolAbstract implements Pe
 	}
 	
 	final private void handleReceivedPacketFromKnownPeer(KeriousProtocolPeer peer, KeriousPacket packet) {
-		peer.setTimeout(this.timeoutTimeCommand.getValue());
 		peer.handlePacketReceived(packet);
 	}
 	
@@ -158,7 +157,6 @@ public class KeriousProtocolServer extends KeriousProtocolAbstract implements Pe
 				
 				if (connectionAccepted) {
 					ClientPeer peer = this.addPeer(connectionPacket.playerName, address, port);
-					peer.setTimeout(this.timeoutTimeCommand.getValue());
 					peer.handlePacketReceived(connectionPacket);
 				} else {
 					ConnectionPacket responseConnectionPacket = this.protocol.createConnectionPacket(ConnectionPacket.ConnectionInterrupted);
@@ -177,12 +175,8 @@ public class KeriousProtocolServer extends KeriousProtocolAbstract implements Pe
 	
 	@Override
 	public void fillWorldInformations(ClientPeer peer, ObjectMap<String, String> informations) {
-		if (this.world != null) {
-			for (Entry<String, ConsoleCommand> command : this.world.getConsole().getCommands().entries()) {
-				if (command.value.isValueCommand()) {
-					informations.put(command.key, command.value.getValueAsString());
-				}
-			}
+		if (this.delegate != null) {
+			this.delegate.fillWorldInformations(this, informations);
 		}
 	}
 
@@ -190,12 +184,23 @@ public class KeriousProtocolServer extends KeriousProtocolAbstract implements Pe
 	// GETTERS/SETTERS
 	////////////////
 	
-	public KeriousProtocolServerDelegate getDelegate() {
+	public ServerServiceDelegate getDelegate() {
 		return delegate;
 	}
 
-	public void setDelegate(KeriousProtocolServerDelegate delegate) {
+	public void setDelegate(ServerServiceDelegate delegate) {
 		this.delegate = delegate;
 	}
+	
+	public Array<ClientPeer> getPeers() {
+		return this.peersAsArray;
+	}
 
+	public ServerServiceListener getListener() {
+		return listener;
+	}
+
+	public void setListener(ServerServiceListener listener) {
+		this.listener = listener;
+	}
 }

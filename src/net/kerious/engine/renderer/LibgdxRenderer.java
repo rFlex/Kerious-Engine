@@ -45,7 +45,9 @@ public class LibgdxRenderer implements Renderer {
 		Gdx.gl.glClearColor(0.45f, 0.33f, 1, 1);
 		Gdx.gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
 		
-		view.draw(this.drawingContext, 0, 0, 1, 1, 1);
+		if (view != null) {
+			view.draw(this.drawingContext, 0, 0, 1, 1, 1);
+		}
 	}
 
 	@Override

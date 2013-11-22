@@ -1,10 +1,10 @@
 /////////////////////////////////////////////////
 // Project : Kerious Engine
 // Package : net.kerious.engine.network.protocol.packet
-// RequestPacket.java
+// InformationPacket.java
 //
 // Author : Simon CORSIN <simoncorsin@gmail.com>
-// File created on Nov 21, 2013 at 2:19:31 PM
+// File created on Nov 22, 2013 at 5:36:48 PM
 ////////
 
 package net.kerious.engine.network.protocol.packet;
@@ -14,36 +14,37 @@ import java.nio.ByteBuffer;
 
 import net.kerious.engine.network.protocol.KeriousProtocol;
 
-public class RequestPacket extends KeriousPacket {
+public class InformationPacket extends KeriousPacket {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 	
-	public static final byte RequestReceiveWorldInformations = 1;
-	public static final byte RequestBeginReceiveSnapshots = 2;
-	public static final byte RequestEndReceiveSnapshots = 3;
-	public static final byte RequestLoadWorld = 4;
+	public final static byte InformationServerIsLoading = 1;
+	public final static byte InformationServerFailedLoading = 2;
 	
-	public byte request;
+	public byte information;
+	public String informationString;
 
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 	
-	public RequestPacket() {
-		super(TypeRequest);
+	public InformationPacket() {
+		super(TypeInformation);
 	}
 
 	////////////////////////
 	// METHODS
 	////////////////
+
 	
 	@Override
 	public void reset() {
 		super.reset();
 		
-		this.request = 0;
+		this.information = 0;
+		this.informationString = null;
 		this.options |= OptionResendIfLost;
 	}
 	
@@ -51,14 +52,16 @@ public class RequestPacket extends KeriousPacket {
 	public void deserialize(KeriousProtocol protocol, ByteBuffer buffer) throws IOException {
 		super.deserialize(protocol, buffer);
 		
-		this.request = buffer.get();
+		this.information = buffer.get();
+		this.informationString = this.getString(buffer);
 	}
 	
 	@Override
 	public void serialize(KeriousProtocol protocol, ByteBuffer buffer) {
 		super.serialize(protocol, buffer);
 		
-		buffer.put(this.request);
+		buffer.put(this.information);
+		this.putString(buffer, this.informationString);
 	}
 
 	////////////////////////

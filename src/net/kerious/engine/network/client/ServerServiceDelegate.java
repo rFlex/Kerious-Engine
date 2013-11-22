@@ -11,8 +11,11 @@ package net.kerious.engine.network.client;
 
 import me.corsin.javatools.misc.ValueHolder;
 
-public interface KeriousProtocolServerDelegate {
+import com.badlogic.gdx.utils.ObjectMap;
+
+public interface ServerServiceDelegate {
 	
-	boolean shouldAcceptConnection(KeriousProtocolServer server, String ip, int port, ValueHolder<String> outReason);
+	void fillWorldInformations(ServerService server, ObjectMap<String, String> informations);
+	boolean shouldAcceptConnection(ServerService server, String ip, int port, ValueHolder<String> outReason);
 
 }

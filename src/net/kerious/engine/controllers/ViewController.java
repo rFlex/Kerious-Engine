@@ -46,6 +46,18 @@ public class ViewController {
 	public void makeKeyView() {
 		this.engine.setKeyView(this.getView());
 	}
+	
+	public void detachView() {
+		if (this.isKeyView()) {
+			this.engine.setKeyView(null);
+		} else {
+			View view = this.view;
+			
+			if (view != null) {
+				view.removeFromParentView();
+			}
+		}
+	}
 
 	////////////////////////
 	// GETTERS/SETTERS
@@ -61,5 +73,9 @@ public class ViewController {
 	
 	public View getView() {
 		return this.view;
+	}
+	
+	public boolean isKeyView() {
+		return this.view == this.engine.getKeyView();
 	}
 }

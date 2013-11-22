@@ -12,32 +12,59 @@ package net.kerious.engine.network.client;
 import java.net.InetAddress;
 import java.net.SocketException;
 
-import net.kerious.engine.KeriousEngine;
+import com.badlogic.gdx.utils.ObjectMap;
+
+import net.kerious.engine.KeriousException;
 import net.kerious.engine.network.protocol.ServerPeerListener;
+import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 
-public class KeriousProtocolClient extends KeriousProtocolAbstract implements ServerPeerListener {
+public class ClientService extends AbstractKeriousProtocolService implements ServerPeerListener {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 
-	private KeriousProtocolClientListener listener;
+	private ClientServiceListener listener;
 	private ServerPeer serverPeer;
 	
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 	
-	public KeriousProtocolClient(KeriousEngine engine) throws SocketException {
-		super(engine);
+	public ClientService() throws SocketException {
+		super();
 	}
 
 	////////////////////////
 	// METHODS
 	////////////////
 	
-	public void disconnect() {
+	@Override
+	public void update(float deltaTime) {
+		super.update(deltaTime);
+		
+		if (this.serverPeer != null) {
+			if (this.serverPeer.hasExpired()) {
+				this.onDisconnected(this.serverPeer, this.serverPeer.getDisconnectReason());
+			} else {
+				this.serverPeer.update(deltaTime);
+				this.serverPeer.sendKeepAlivePacket();
+			}
+		}
+	}
+	
+	public void disconnect(String reason) {
+		if (this.serverPeer != null) {
+			ConnectionPacket connection = this.protocol.createConnectionPacket(ConnectionPacket.ConnectionInterrupted);
+			connection.reason = reason;
+			
+			this.serverPeer.send(connection);
+			this.onDisconnected(this.serverPeer, reason);
+		}
+	}
+	
+	private void destroyPeer() {
 		if (this.serverPeer != null) {
 			this.serverPeer.setListener(null);
 			this.serverPeer = null;
@@ -54,12 +81,15 @@ public class KeriousProtocolClient extends KeriousProtocolAbstract implements Se
 		return new ServerPeer(address, port);
 	}
 	
-	public void connectTo(String ip, int port) {
-		this.disconnect();
+	public void connectTo(String name, String ip, int port) {
+		this.disconnect("Connected to another server");
 		
 		try {
 			ServerPeer peer = this.createPeer(InetAddress.getByName(ip), port);
+			peer.setProtocol(this.getProtocol());
+			peer.setName(name);
 			peer.setListener(this);
+			peer.setGate(this.getGate());
 			
 			this.serverPeer = peer;
 		} catch (Exception e) {
@@ -70,15 +100,15 @@ public class KeriousProtocolClient extends KeriousProtocolAbstract implements Se
 	}
 	
 	@Override
-	public void onConnected(ServerPeer peer) {
+	public void onConnected(ServerPeer peer, int playerId) {
 		if (this.listener != null) {
-			this.listener.onConnected(this, peer.getIP(), peer.getPort());
+			this.listener.onConnected(this, peer.getIP(), peer.getPort(), playerId);
 		}
 	}
 	
 	@Override
 	public void onConnectionFailed(ServerPeer peer, String reason) {
-		this.disconnect();
+		this.destroyPeer();
 		if (this.listener != null) {
 			this.listener.onConnectionFailed(this, peer.getIP(), peer.getPort(), reason);
 		}
@@ -86,7 +116,7 @@ public class KeriousProtocolClient extends KeriousProtocolAbstract implements Se
 
 	@Override
 	public void onDisconnected(ServerPeer peer, String reason) {
-		this.disconnect();
+		this.destroyPeer();
 		if (this.listener != null) {
 			this.listener.onDisconnected(this, peer.getIP(), peer.getPort(), reason);
 		}
@@ -104,16 +134,46 @@ public class KeriousProtocolClient extends KeriousProtocolAbstract implements Se
 		
 		keriousPacket.release();
 	}
+	
+	public void sendToServer(KeriousPacket packet) {
+		if (this.serverPeer == null) {
+			throw new KeriousException("The client is currently not connected to any server");
+		}
+		
+		this.serverPeer.send(packet);
+	}
+	
+	@Override
+	public void onReceivedWorldInformations(ObjectMap<String, String> informations, boolean shouldLoadWorld) {
+		if (this.listener != null) {
+			this.listener.onReceivedWorldInformations(this, informations, shouldLoadWorld);
+		}
+	}
+	
+
+	@Override
+	public void onRemoteIsLoadingWorld() {
+		
+	}
+
+	@Override
+	public void onRemoteFailedToLoadWorld(String reason) {
+		
+	}
 
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
 	
-	public KeriousProtocolClientListener getListener() {
+	public ClientServiceListener getListener() {
 		return listener;
 	}
 
-	public void setListener(KeriousProtocolClientListener listener) {
+	public void setListener(ClientServiceListener listener) {
 		this.listener = listener;
+	}
+	
+	public boolean isConnected() {
+		return this.serverPeer != null;
 	}
 }
