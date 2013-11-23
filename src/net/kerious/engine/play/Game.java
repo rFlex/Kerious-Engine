@@ -44,8 +44,8 @@ public abstract class Game implements TemporaryUpdatable, Closeable {
 	// CONSTRUCTORS
 	////////////////
 	
-	public Game(KeriousEngine engine) {
-		this.console = new Console();
+	public Game(KeriousEngine engine, Console console) {
+		this.console = console;
 		this.engine = engine;
 		
 		engine.addTemporaryUpdatable(this);
@@ -116,19 +116,30 @@ public abstract class Game implements TemporaryUpdatable, Closeable {
 	
 	public void loadWorld(ObjectMap<String, String> informations) {
 		this.worldIsReady = false;
-		World world = this.createWorld(informations);
-		this.setWorld(world);
-		
-		world.beginLoadRessources();
+		try {
+			World world = this.createWorld(informations);
+			this.setWorld(world);
+			
+			world.beginLoadRessources();
+		} catch (Exception e) {
+			this.worldFailedLoad(e.getMessage());
+		}
 	}
 
+	/**
+	 * Create a new world using the informations map
+	 * The information map contains every values hold in the 
+	 * game console
+	 * @param informations
+	 * @return
+	 */
 	abstract protected World newWorld(ObjectMap<String, String> informations);
 	
 	protected World createWorld(ObjectMap<String, String> informations) {
 		World world = this.newWorld(informations);
 		
 		if (world == null) {
-			throw new KeriousException("The Play must returns a World");
+			throw new KeriousException("The Game didn't returns a world");
 		}
 		
 		world.setConsole(this.console);

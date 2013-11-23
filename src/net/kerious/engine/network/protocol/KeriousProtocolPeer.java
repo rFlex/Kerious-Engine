@@ -170,7 +170,6 @@ public class KeriousProtocolPeer extends NetworkPeer implements TemporaryUpdatab
 		if ((packet.options & KeriousPacket.OptionResendIfLost) == 0x1) {
 			this.send(packet);
 		}
-		System.out.println("Packet lost " + this.getPort());
 	}
 	
 	final private boolean updateAckInformations(KeriousPacket reliablePacket) {

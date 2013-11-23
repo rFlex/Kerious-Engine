@@ -36,10 +36,10 @@ public abstract class ValueConsoleCommand<T> extends AbstractConsoleCommand {
 	protected abstract int compareValue(T value, T cmp);
 	
 	@Override
-	public void handleInput(String input) {
-		if (!input.isEmpty()) {
+	public void handle(String ... input) {
+		if (input.length > 0) {
 			try {
-				T value = this.parseValue(input);
+				T value = this.parseValue(input[0]);
 				this.setValue(value);
 			} catch (Exception e) {
 				this.printToConsole("Error while trying to set " + this.getName() + ": " + e.getMessage());

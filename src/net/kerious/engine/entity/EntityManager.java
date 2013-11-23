@@ -126,6 +126,16 @@ public class EntityManager implements EntityModelCreator {
 		return entityCreator.createEntityModel();
 	}
 	
+	public void updateEntity(EntityModel entityModel) throws EntityException {
+		Entity entity = this.getEntity(entityModel.id);
+		
+		if (entity == null) {
+			entity = this.createEntity(entityModel);
+		} else {
+			entity.setModel(entityModel);
+		}
+	}
+	
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
@@ -145,6 +155,5 @@ public class EntityManager implements EntityModelCreator {
 	public Iterable<Entity> getEntites() {
 		return this.entities.values();
 	}
-	
 
 }

@@ -12,12 +12,16 @@ package net.kerious.engine.network.client;
 import java.net.InetAddress;
 import java.net.SocketException;
 
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
 
 import net.kerious.engine.KeriousException;
+import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.network.protocol.ServerPeerListener;
 import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
+import net.kerious.engine.player.Player;
+import net.kerious.engine.world.event.Event;
 
 public class ClientService extends AbstractKeriousProtocolService implements ServerPeerListener {
 
@@ -144,23 +148,26 @@ public class ClientService extends AbstractKeriousProtocolService implements Ser
 	}
 	
 	@Override
-	public void onReceivedWorldInformations(ObjectMap<String, String> informations, boolean shouldLoadWorld) {
+	public void onReceivedWorldInformations(ServerPeer peer, ObjectMap<String, String> informations, boolean shouldLoadWorld) {
 		if (this.listener != null) {
 			this.listener.onReceivedWorldInformations(this, informations, shouldLoadWorld);
 		}
 	}
 	
-
 	@Override
-	public void onRemoteIsLoadingWorld() {
-		
+	public void onReceivedInformation(ServerPeer peer, String informationType, String information) {
+		if (this.listener != null) {
+			this.listener.onReceivedInformation(this, informationType, information);
+		}
 	}
 
 	@Override
-	public void onRemoteFailedToLoadWorld(String reason) {
-		
+	public void onReceivedSnapshot(ServerPeer peer, Array<Player> players, Array<EntityModel> entityModels, Array<Event> events) {
+		if (this.listener != null) {
+			this.listener.onReceivedSnapshot(this, players, entityModels, events);
+		}
 	}
-
+	
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
@@ -171,6 +178,10 @@ public class ClientService extends AbstractKeriousProtocolService implements Ser
 
 	public void setListener(ClientServiceListener listener) {
 		this.listener = listener;
+	}
+	
+	public ServerPeer getServerPeer() {
+		return this.serverPeer;
 	}
 	
 	public boolean isConnected() {

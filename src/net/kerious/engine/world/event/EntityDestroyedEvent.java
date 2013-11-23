@@ -1,10 +1,10 @@
 /////////////////////////////////////////////////
 // Project : Kerious Engine
-// Package : net.kerious.engine.world
-// GameEvent.java
+// Package : net.kerious.engine.world.event
+// EntityDestroyedEvent.java
 //
 // Author : Simon CORSIN <simoncorsin@gmail.com>
-// File created on Nov 20, 2013 at 8:44:31 PM
+// File created on Nov 23, 2013 at 6:44:41 PM
 ////////
 
 package net.kerious.engine.world.event;
@@ -15,49 +15,53 @@ import java.nio.ByteBuffer;
 import net.kerious.engine.network.protocol.KeriousProtocol;
 import net.kerious.engine.network.protocol.KeriousSerializableData;
 
-public abstract class Event extends KeriousSerializableData {
+public class EntityDestroyedEvent extends Event {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 	
-	final public byte type;
-	public int id;
-	
+	public int entityId;
+
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 	
-	public Event(byte type) {
-		this.type = type;
+	public EntityDestroyedEvent() {
+		super(Events.EntityDestroyed);
 	}
-	
+
 	////////////////////////
 	// METHODS
 	////////////////
-
+	
 	@Override
 	public void copyTo(KeriousSerializableData object) {
-		Event event = (Event)object;
+		super.copyTo(object);
+		EntityDestroyedEvent event = (EntityDestroyedEvent)object;
 		
-		event.id = this.id;
+		event.entityId = this.entityId;
 	}
 	
 	@Override
 	public void deserialize(KeriousProtocol protocol, ByteBuffer buffer) throws IOException {
-		this.id = buffer.getInt();
+		super.deserialize(protocol, buffer);
+		
+		this.entityId = buffer.getInt();
 	}
 
 	@Override
 	public void serialize(KeriousProtocol protocol, ByteBuffer buffer) {
-		buffer.putInt(this.id);
+		super.serialize(protocol, buffer);
+		
+		buffer.putInt(this.entityId);
 	}
 	
 	@Override
 	public void reset() {
 		super.reset();
 		
-		this.id = 0;
+		this.entityId = 0;
 	}
 
 	////////////////////////

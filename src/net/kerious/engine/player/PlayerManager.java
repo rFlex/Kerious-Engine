@@ -53,8 +53,22 @@ public class PlayerManager implements PlayerCreator {
 	public Player createPlayer() {
 		return this.playersPool.obtain();
 	}
+	
+	public Player getPlayer(int id) {
+		return this.players.get(id);
+	}
+	
+	public void updatePlayer(Player player) {
+		Player actualPlayer = this.getPlayer(player.id);
+		
+		if (actualPlayer == null) {
+			actualPlayer = this.addPlayer(player.id, player.name);
+		}
+		
+		player.copyTo(actualPlayer);
+	}
 
-	public void addPlayer(int id, String name) {
+	public Player addPlayer(int id, String name) {
 		Player player = this.createPlayer();
 		player.id = id;
 		player.name = name;
@@ -64,6 +78,8 @@ public class PlayerManager implements PlayerCreator {
 		if (this.listener != null) {
 			this.listener.onPlayerConnected(player);
 		}
+		
+		return player;
 	}
 	
 	public boolean removePlayer(int id, String reason) {

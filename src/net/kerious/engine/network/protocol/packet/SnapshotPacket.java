@@ -25,9 +25,9 @@ public class SnapshotPacket extends KeriousPacket {
 	// VARIABLES
 	////////////////
 
-	private Array<Player> players;
-	private Array<EntityModel> models;
-	private Array<Event> events;
+	public Array<Player> players;
+	public Array<EntityModel> models;
+	public Array<Event> events;
 	
 	////////////////////////
 	// CONSTRUCTORS

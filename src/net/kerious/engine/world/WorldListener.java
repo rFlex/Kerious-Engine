@@ -14,8 +14,6 @@ import net.kerious.engine.entity.Entity;
 @SuppressWarnings("rawtypes")
 public interface WorldListener {
 	
-	void willUpdateWorld(World world);
-	void didUpdateWorld(World world);
 	void onEntityCreated(World world, Entity entity);
 	void onEntityDestroyed(World world, int entityId);
 	

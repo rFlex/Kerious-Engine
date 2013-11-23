@@ -45,7 +45,7 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 	}
 	
 	public HostedGame(KeriousEngine engine, int port, boolean withRendering) {
-		super(engine);
+		super(engine, new Console());
 		
 		try {
 			this.server = new ServerService(port);
@@ -151,7 +151,7 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 
 	@Override
 	public void onPeerConnected(ServerService server, ClientPeer client) {
-		System.out.println(client + " connected");
+		this.console.print(client + " connected");
 		World world = this.getWorld();
 		
 		if (world != null && world.isResourcesLoaded()) {
@@ -165,7 +165,7 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 	@Override
 	public void onPeerDisconnected(ServerService server,
 			ClientPeer client) {
-		System.out.println(client + " disconnected: " + client.getDisconnectReason());
+		this.console.print(client + " disconnected (" + client.getDisconnectReason() + ")");
 		World world = this.getWorld();
 		
 		if (world != null) {

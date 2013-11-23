@@ -11,12 +11,14 @@ package net.kerious.engine.network.client;
 
 import java.net.InetAddress;
 
+import net.kerious.engine.console.InfoType;
 import net.kerious.engine.network.protocol.KeriousProtocolPeer;
 import net.kerious.engine.network.protocol.ServerPeerListener;
 import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.InformationPacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.network.protocol.packet.RequestPacket;
+import net.kerious.engine.network.protocol.packet.SnapshotPacket;
 import net.kerious.engine.network.protocol.packet.WorldInformationsPacket;
 
 /**
@@ -87,8 +89,6 @@ public class ServerPeer extends KeriousProtocolPeer {
 			return true;
 		}
 		
-//		System.out.println("Received from server: " + packet.getClass().getSimpleName());
-		
 		switch (packet.packetType) {
 		case KeriousPacket.TypeConnection:
 			ConnectionPacket connectionPacket = (ConnectionPacket)packet;
@@ -130,7 +130,7 @@ public class ServerPeer extends KeriousProtocolPeer {
 		case KeriousPacket.TypeWorldInformations:
 			WorldInformationsPacket worldInformationsPacket = (WorldInformationsPacket)packet;
 			if (this.listener != null) {
-				this.listener.onReceivedWorldInformations(worldInformationsPacket.informations, this.shouldLoadWorld);
+				this.listener.onReceivedWorldInformations(this, worldInformationsPacket.informations, this.shouldLoadWorld);
 			}
 			
 			this.shouldLoadWorld = false;
@@ -141,16 +141,22 @@ public class ServerPeer extends KeriousProtocolPeer {
 			switch (informationPacket.information) {
 			case InformationPacket.InformationServerIsLoading:
 				if (this.listener != null) {
-					this.listener.onRemoteIsLoadingWorld();
+					this.listener.onReceivedInformation(this, InfoType.Info, "Server is loading the world");
 				}
 				break;
 			case InformationPacket.InformationServerFailedLoading:
 				if (this.listener != null) {
-					this.listener.onRemoteFailedToLoadWorld(informationPacket.informationString);
+					this.listener.onReceivedInformation(this, InfoType.Error, "Server failed to load the world: " + informationPacket.informationString);
 				}
 				break;
 			default:
 				return false;
+			}
+			break;
+		case KeriousPacket.TypeSnapshot:
+			SnapshotPacket snapshotPacket = (SnapshotPacket)packet;
+			if (this.listener != null) {
+				this.listener.onReceivedSnapshot(this, snapshotPacket.players, snapshotPacket.models, snapshotPacket.events);
 			}
 			break;
 		default:

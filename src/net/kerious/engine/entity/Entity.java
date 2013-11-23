@@ -260,8 +260,19 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	}
 	
 	public void setModel(EntityModelType model) {
-		this.model = model;
-		this.modelChanged();
+		if (this.model != model) {
+			if (this.model != null) {
+				this.model.release();
+			}
+			
+			this.model = model;
+			
+			if (model != null) {
+				model.retain();
+			}
+			
+			this.modelChanged();
+		}
 	}
 
 	public ViewType getView() {

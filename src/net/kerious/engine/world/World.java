@@ -12,6 +12,7 @@ package net.kerious.engine.world;
 import java.io.Closeable;
 
 import net.kerious.engine.KeriousEngine;
+import net.kerious.engine.console.Commands;
 import net.kerious.engine.console.Console;
 import net.kerious.engine.controllers.ViewController;
 import net.kerious.engine.entity.Entity;
@@ -31,7 +32,7 @@ import net.kerious.engine.world.event.EventFactory;
 import com.badlogic.gdx.utils.SnapshotArray;
 
 @SuppressWarnings("rawtypes")
-public class World extends ViewController implements TemporaryUpdatable, EntityManagerListener, ResourceBundleListener, Closeable {
+public abstract class World extends ViewController implements TemporaryUpdatable, EntityManagerListener, ResourceBundleListener, Closeable {
 
 	////////////////////////
 	// VARIABLES
@@ -107,10 +108,6 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 	
 	@Override
 	public void update(float deltaTime) {
-		if (this.listener != null) {
-			this.listener.willUpdateWorld(this);
-		}
-		
 		Entity[] entities = this.entities.begin();
 		for (int i = 0, length = this.entities.size; i < length; i++) {
 			Entity entity = entities[i];
@@ -124,21 +121,13 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 			}
 		}
 		this.entities.end();
-		
-		if (this.listener != null) {
-			this.listener.didUpdateWorld(this);
-		}
 	}
 	
 	public Entity createEntity(int entityType) throws EntityException {
-		Entity entity = this.entityManager.createEntity(entityType);
-		
-		this.addEntity(entity);
-		
-		return entity;
+		return this.entityManager.createEntity(entityType);
 	}
 	
-	public void addEntity(Entity entity) {
+	private void addEntity(Entity entity) {
 		if (entity == null) {
 			throw new IllegalArgumentException("entity may not be null");
 		}
@@ -151,6 +140,8 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 	
 	@Override
 	public void onEntityCreated(Entity entity) {
+		this.addEntity(entity);
+		
 		if (this.listener != null) {
 			this.listener.onEntityCreated(this, entity);
 		}
@@ -178,6 +169,8 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 		}
 	}
 	
+	abstract protected void worldReady();
+	
 	@Override
 	public void onLoadedItem(ResourceManager manager, ResourceBundle bundle, String fileName) {
 		
@@ -189,10 +182,15 @@ public class World extends ViewController implements TemporaryUpdatable, EntityM
 		this.resourcesLoaded = true;
 		this.failedLoadingResources = false;
 		this.loadingFailedReason = null;
+		this.worldReady();
 	}
 
 	@Override
 	public void onLoadingFailed(ResourceManager manager, ResourceBundle bundle, Throwable exception) {
+		if (this.console != null) {
+			this.console.processCommand(Commands.PrintError, exception.getMessage());
+		}
+		
 		this.failedLoadingResources = true;
 		this.loadingFailedReason = exception.getMessage();
 	}

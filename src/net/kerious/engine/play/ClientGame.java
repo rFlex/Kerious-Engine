@@ -12,13 +12,22 @@ package net.kerious.engine.play;
 import java.net.SocketException;
 
 import net.kerious.engine.KeriousEngine;
+import net.kerious.engine.console.Commands;
+import net.kerious.engine.console.SimpleCommand;
 import net.kerious.engine.console.StringConsoleCommand;
+import net.kerious.engine.entity.EntityException;
+import net.kerious.engine.entity.EntityManager;
+import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.network.client.ClientService;
 import net.kerious.engine.network.client.ClientServiceListener;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.network.protocol.packet.RequestPacket;
+import net.kerious.engine.player.Player;
+import net.kerious.engine.player.PlayerManager;
 import net.kerious.engine.world.World;
+import net.kerious.engine.world.event.Event;
 
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
 
 public abstract class ClientGame extends Game implements ClientServiceListener {
@@ -37,7 +46,7 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 	////////////////
 	
 	public ClientGame(KeriousEngine engine) {
-		super(engine);
+		super(engine, engine.getConsole());
 		
 		try {
 			this.client = new ClientService();
@@ -47,8 +56,14 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 			e.printStackTrace();
 		}
 		
-		this.nameCommand = new StringConsoleCommand("cl_name");
+		this.nameCommand = new StringConsoleCommand("name");
 		
+		this.console.registerCommand(new SimpleCommand("disconnect") {
+			@Override
+			public void handle(String... parameters) {
+				disconnect();
+			}
+		});
 		this.console.registerCommand(this.nameCommand);
 	}
 
@@ -58,6 +73,11 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 	
 	public void connect(String ip, int port) {
 		this.client.connectTo(this.getName(), ip, port);
+		this.console.print("Attempting to connect to " + ip + ":" + port);
+	}
+	
+	public void disconnect() {
+		this.client.disconnect("Disconnected by user");
 	}
 	
 	@Override
@@ -116,6 +136,8 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 
 	@Override
 	public void onDisconnected(ClientService clientServer, String ip, int port, String reason) {
+		this.console.print("Disconnected from " + ip + ":" + port + " (" + reason + ")");
+		
 		this.myPlayerId = 0;
 		// Temporary implementation
 		this.setWorld(null);
@@ -127,6 +149,8 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 
 	@Override
 	public void onConnected(ClientService clientServer, String ip, int port, int playerId) {
+		this.console.print("Connected to " + ip + ":" + port + " (PlayerID:" + playerId + ")");
+
 		this.myPlayerId = playerId;
 		
 		if (this.listener != null) {
@@ -136,8 +160,40 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 
 	@Override
 	public void onConnectionFailed(ClientService clientServer, String ip, int port, String reason) {
+		this.console.printError("Failed to connect to " + ip + ":" + port + "(" + reason + ")");
+		
 		if (this.listener != null) {
 			this.listener.onConnectionFailed(this, ip, port, reason);
+		}
+	}
+	
+	@Override
+	public void onReceivedInformation(ClientService clientService, String informationType, String message) {
+		this.console.processCommand(Commands.RemoteInformation, informationType, message);
+	}
+
+	@Override
+	public void onReceivedSnapshot(ClientService clientService, Array<Player> players, Array<EntityModel> entityModels, Array<Event> events) {
+		World world = this.getWorld();
+		
+		if (world != null && world.isResourcesLoaded()) {
+			final PlayerManager playerManager = world.getPlayerManager();
+			final Player[] playersArray = players.items;
+			for (int i = 0, length = players.size; i < length; i++) {
+				Player player = playersArray[i];
+				playerManager.updatePlayer(player);
+			}
+			
+			final EntityManager entityManager = world.getEntityManager();
+			final EntityModel[] entityModelsArray = entityModels.items;
+			for (int i = 0, length = entityModels.size; i < length; i++) {
+				EntityModel entityModel = entityModelsArray[i];
+				try {
+					entityManager.updateEntity(entityModel);
+				} catch (EntityException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 
@@ -164,5 +220,6 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 	public int getMyPlayerId() {
 		return myPlayerId;
 	}
+
 
 }

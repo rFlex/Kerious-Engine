@@ -97,7 +97,7 @@ public abstract class KeriousEngine implements Disposable {
 		this.resourceManager.close();
 		this.disposed = true;
 	}
-
+	
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////

@@ -11,7 +11,8 @@ package net.kerious.engine.console;
 
 public interface ConsoleCommand {
 	
-	void handleInput(String input);
+	void handle(String ... parameters);
+	
 	String getName();
 	
 	boolean isValueCommand();
