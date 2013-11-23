@@ -22,11 +22,14 @@ import net.kerious.engine.network.client.ServerServiceListener;
 import net.kerious.engine.network.protocol.packet.InformationPacket;
 import net.kerious.engine.network.protocol.packet.RequestPacket;
 import net.kerious.engine.world.World;
+import net.kerious.engine.world.event.Event;
+import net.kerious.engine.world.event.EventManager;
+import net.kerious.engine.world.event.EventManagerListener;
 
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
 
-public abstract class HostedGame extends Game implements ServerServiceDelegate, ServerServiceListener {
+public abstract class HostedGame extends Game implements ServerServiceDelegate, ServerServiceListener, EventManagerListener {
 
 	////////////////////////
 	// VARIABLES
@@ -134,11 +137,26 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 	}
 	
 	@Override
+	public void onEventFired(EventManager eventManager, Event event) {
+		Array<ClientPeer> peers = this.server.getPeers();
+		ClientPeer[] peersArray = peers.items;
+		
+		for (int i = 0, length = peers.size; i < length; i++) {
+			final ClientPeer clientPeer = peersArray[i];
+				
+			if (clientPeer.isReadyToReceiveSnapshots()) {
+				clientPeer.sendEvent(event);
+			}
+		}	
+	}
+	
+	@Override
 	protected World createWorld(ObjectMap<String, String> informations) {
 		World world = super.createWorld(informations);
 		
 		world.setHasAuthority(true);
 		world.setRenderingEnabled(this.renderingEnabled);
+		world.getEventManager().setListener(this);
 		
 		return world;
 	}

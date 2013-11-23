@@ -26,19 +26,24 @@ public class ConsoleInputReader implements Closeable {
 	////////////////
 	
 	final private KeriousEngine engine;
+	final private Console console;
 	private BufferedReader reader;
 
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
-	
+
 	public ConsoleInputReader(KeriousEngine engine) {
+		this(engine, engine.getConsole());
+	}
+	
+	public ConsoleInputReader(KeriousEngine engine, Console console) {
 		if (engine == null) {
 			throw new NullArgumentException("engine");
 		}
 		
 		this.engine = engine;
-
+		this.console = console;
 	}
 
 	////////////////////////
@@ -78,7 +83,6 @@ public class ConsoleInputReader implements Closeable {
 					
 					this.engine.getTaskQueue().executeAsync(new Runnable() {
 						public void run() {
-							final Console console = engine.getConsole();
 							console.processCommandString(line);
 						}
 					});

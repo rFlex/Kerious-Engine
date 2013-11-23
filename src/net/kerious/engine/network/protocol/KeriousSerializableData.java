@@ -12,6 +12,8 @@ package net.kerious.engine.network.protocol;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import net.kerious.engine.KeriousException;
+
 import me.corsin.javatools.misc.PoolableImpl;
 
 public abstract class KeriousSerializableData extends PoolableImpl {

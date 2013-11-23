@@ -59,6 +59,10 @@ public abstract class Event extends KeriousSerializableData {
 		
 		this.id = 0;
 	}
+	
+	public int hashCode() {
+		return this.id;
+	}
 
 	////////////////////////
 	// GETTERS/SETTERS

@@ -204,7 +204,12 @@ public class Console {
 		ConsoleCommand consoleCommand = this.getCommand(commandName);
 		
 		if (consoleCommand != null) {
-			consoleCommand.handle(parameters);
+			try {
+				consoleCommand.handle(parameters);
+			} catch (Throwable e) {
+				this.printError("Command failed: " + e.getMessage());
+			}
+			
 		} else {
 			// Prevent infinite loop if the user removed the print command
 			if (!Commands.PrintError.equals(commandName)) {

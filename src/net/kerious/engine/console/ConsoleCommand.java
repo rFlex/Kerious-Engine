@@ -11,7 +11,7 @@ package net.kerious.engine.console;
 
 public interface ConsoleCommand {
 	
-	void handle(String ... parameters);
+	void handle(String ... parameters) throws Throwable;
 	
 	String getName();
 	

@@ -97,6 +97,14 @@ public class EntityManager implements EntityModelCreator {
 		return this.createEntity(entityCreator, entityModel);
 	}
 	
+	public void destroyEntity(int entityId) {
+		Entity entity = this.getEntity(entityId);
+		
+		if (entity != null) {
+			this.destroyEntity(entity);
+		}
+	}
+	
 	public void destroyEntity(Entity entity) {
 		if (entity == null) {
 			throw new IllegalArgumentException("entity may not be null");
@@ -112,8 +120,8 @@ public class EntityManager implements EntityModelCreator {
 		
 		this.entities.remove(entityId);
 		
+		entity.setModel(null);
 		entity.release();
-		model.release();
 		
 		if (this.listener != null) {
 			this.listener.onEntityDestroyed(entityId);

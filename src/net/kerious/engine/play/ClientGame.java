@@ -25,7 +25,11 @@ import net.kerious.engine.network.protocol.packet.RequestPacket;
 import net.kerious.engine.player.Player;
 import net.kerious.engine.player.PlayerManager;
 import net.kerious.engine.world.World;
+import net.kerious.engine.world.event.EntityDestroyedEvent;
 import net.kerious.engine.world.event.Event;
+import net.kerious.engine.world.event.EventListener;
+import net.kerious.engine.world.event.EventManager;
+import net.kerious.engine.world.event.Events;
 
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
@@ -115,10 +119,17 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 	
 	@Override
 	protected World createWorld(ObjectMap<String, String> informations) {
-		World world = super.createWorld(informations);
+		final World world = super.createWorld(informations);
 		
 		world.setHasAuthority(false);
 		world.setRenderingEnabled(true);
+		
+		world.getEventManager().addListener(Events.EntityDestroyed, new EventListener() {
+			public void onEventFired(EventManager eventManager, Event event) {
+				EntityDestroyedEvent entityDestroyedEvent = (EntityDestroyedEvent)event;
+				world.getEntityManager().destroyEntity(entityDestroyedEvent.entityId);
+			}
+		});
 		
 		return world;
 	}
@@ -193,6 +204,12 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 				} catch (EntityException e) {
 					e.printStackTrace();
 				}
+			}
+			
+			final Event[] eventsArray = events.items;
+			for (int i = 0, length = events.size; i < length; i++) {
+				Event event = eventsArray[i];
+				world.fireEvent(event);
 			}
 		}
 	}

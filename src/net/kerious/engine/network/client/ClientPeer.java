@@ -20,6 +20,9 @@ import net.kerious.engine.network.protocol.packet.SnapshotPacket;
 import net.kerious.engine.network.protocol.packet.WorldInformationsPacket;
 import net.kerious.engine.player.Player;
 import net.kerious.engine.world.World;
+import net.kerious.engine.world.event.Event;
+
+import com.badlogic.gdx.utils.ObjectSet;
 
 public class ClientPeer extends KeriousProtocolPeer {
 
@@ -31,6 +34,7 @@ public class ClientPeer extends KeriousProtocolPeer {
 	private String name;
 	private PeerServerDelegate delegate;
 	private boolean readyToReceiveSnapshots;
+	private ObjectSet<Event> pendingEvents;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -38,6 +42,8 @@ public class ClientPeer extends KeriousProtocolPeer {
 	
 	public ClientPeer(InetAddress address, int port) {
 		super(address, port);
+		
+		this.pendingEvents = new ObjectSet<Event>();
 	}
 
 	////////////////////////
@@ -93,9 +99,13 @@ public class ClientPeer extends KeriousProtocolPeer {
 		return true;
 	}
 	
-	public void sendSnapshot(World world) {
-//		this.sendKeepAlivePacket();
+	public void sendEvent(Event event) {
+		event.retain();
 		
+		this.pendingEvents.add(event);
+	}
+	
+	public void sendSnapshot(World world) {
 		SnapshotPacket snapshotPacket = this.protocol.createSnapshotPacket();
 		
 		for (Entity<?, ?> entity : world.getEntityManager().getEntites()) {
@@ -105,10 +115,31 @@ public class ClientPeer extends KeriousProtocolPeer {
 		for (Player player : world.getPlayerManager().getPlayers()) {
 			snapshotPacket.addPlayer(player);
 		}
+
+		for (Event event : this.pendingEvents) {
+			snapshotPacket.addEvent(event);
+		}
 		
 		this.send(snapshotPacket);
 	}
+	
+	protected void packetReceived(KeriousPacket packet) {
+		super.packetReceived(packet);
+		
+		if (packet.packetType == KeriousPacket.TypeSnapshot) {
+			SnapshotPacket snapshotPacket = (SnapshotPacket)packet;
 
+			Event[] events = snapshotPacket.events.items;
+			for (int i = 0, length = snapshotPacket.events.size; i < length; i++) {
+				Event event = events[i];
+				
+				if (this.pendingEvents.remove(event)) {
+					event.release();
+				}
+			}
+		}
+	}
+	
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////

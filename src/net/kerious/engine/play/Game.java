@@ -174,7 +174,7 @@ public abstract class Game implements TemporaryUpdatable, Closeable {
 			
 			if (world != null) {
 				entityModelCreator = world.getEntityManager();
-				eventCreator = world.getEventFactory();
+				eventCreator = world.getEventManager();
 				playerCreator = world.getPlayerManager();
 			}
 			

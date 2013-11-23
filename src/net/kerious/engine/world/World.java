@@ -27,7 +27,10 @@ import net.kerious.engine.resource.ResourceBundleListener;
 import net.kerious.engine.resource.ResourceManager;
 import net.kerious.engine.skin.SkinManager;
 import net.kerious.engine.utils.TemporaryUpdatable;
-import net.kerious.engine.world.event.EventFactory;
+import net.kerious.engine.world.event.EntityDestroyedEvent;
+import net.kerious.engine.world.event.Event;
+import net.kerious.engine.world.event.EventManager;
+import net.kerious.engine.world.event.Events;
 
 import com.badlogic.gdx.utils.SnapshotArray;
 
@@ -41,11 +44,10 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	final private SnapshotArray<Entity> entities;
 	final private EntityManager entityManager;
 	final private SkinManager skinManager;
-	final private EventFactory eventFactory;
+	final private EventManager eventManager;
 	final private PlayerManager playerManager;
 	final private ResourceBundle resourceBundle;
 	private Console console;
-	private WorldListener listener;
 	private boolean addedToEngine;
 	private boolean renderingEnabled;
 	private boolean hasAuthority;
@@ -64,7 +66,7 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		this.entities = new SnapshotArray<Entity>(true, 64, Entity.class);
 		this.skinManager = new SkinManager();
 		this.entityManager = new EntityManager();
-		this.eventFactory = new EventFactory();
+		this.eventManager = new EventManager();
 		this.playerManager = this.createPlayerManager();
 		this.resourceBundle = new ResourceBundle();
 		
@@ -141,17 +143,22 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	@Override
 	public void onEntityCreated(Entity entity) {
 		this.addEntity(entity);
-		
-		if (this.listener != null) {
-			this.listener.onEntityCreated(this, entity);
-		}
 	}
 
 	@Override
 	public void onEntityDestroyed(int entityId) {
-		if (this.listener != null) {
-			this.listener.onEntityDestroyed(this, entityId);
+		if (this.hasAuthority) {
+			EntityDestroyedEvent event = (EntityDestroyedEvent)this.eventManager.createEvent(Events.EntityDestroyed);
+			event.entityId = entityId;
+			
+			this.fireEvent(event);
+			
+			event.release();
 		}
+	}
+	
+	public void fireEvent(Event event) {
+		this.eventManager.fireEvent(event);
 	}
 	
 	public void beginLoadRessources() {
@@ -236,6 +243,7 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	public void setHasAuthority(boolean value) {
 		this.hasAuthority = value;
 		this.skinManager.setAutoAttributeId(value);
+		this.eventManager.setAutoAttributeId(value);
 	}
 	
 	public Console getConsole() {
@@ -262,24 +270,16 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		return entityManager;
 	}
 
-	public WorldListener getListener() {
-		return listener;
-	}
-	
 	public PlayerManager getPlayerManager() {
 		return this.playerManager;
 	}
 
-	public void setListener(WorldListener listener) {
-		this.listener = listener;
-	}
-	
 	public int getEntitiesCount() {
 		return this.entities.size;
 	}
 	
-	public EventFactory getEventFactory() {
-		return this.eventFactory;
+	public EventManager getEventManager() {
+		return this.eventManager;
 	}
 
 	public boolean isResourcesLoaded() {
