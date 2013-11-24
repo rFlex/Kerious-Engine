@@ -99,11 +99,9 @@ public abstract class Game implements TemporaryUpdatable, Closeable {
 	}
 	
 	protected void fillWorldInformations(ObjectMap<String, String> informations) {
-		if (this.world != null) {
-			for (Entry<String, ConsoleCommand> command : this.world.getConsole().getCommands().entries()) {
-				if (command.value.isValueCommand()) {
-					informations.put(command.key, command.value.getValueAsString());
-				}
+		for (Entry<String, ConsoleCommand> command : this.console.getCommands().entries()) {
+			if (command.value.isValueCommand()) {
+				informations.put(command.key, command.value.getValueAsString());
 			}
 		}
 	}

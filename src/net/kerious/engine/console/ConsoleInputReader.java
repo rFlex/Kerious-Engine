@@ -81,6 +81,10 @@ public class ConsoleInputReader implements Closeable {
 				while (true) {
 					final String line = reader.readLine();
 					
+					if (line == null) {
+						return;
+					}
+					
 					this.engine.getTaskQueue().executeAsync(new Runnable() {
 						public void run() {
 							console.processCommandString(line);
