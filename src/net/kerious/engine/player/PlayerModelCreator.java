@@ -9,8 +9,8 @@
 
 package net.kerious.engine.player;
 
-public interface PlayerCreator {
+public interface PlayerModelCreator {
 	
-	Player createPlayer();
+	PlayerModel createPlayerModel();
 
 }

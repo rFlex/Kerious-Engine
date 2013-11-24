@@ -19,18 +19,14 @@ import net.kerious.engine.entity.Entity;
 import net.kerious.engine.entity.EntityException;
 import net.kerious.engine.entity.EntityManager;
 import net.kerious.engine.entity.EntityManagerListener;
-import net.kerious.engine.network.protocol.KeriousProtocol;
-import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.player.PlayerManager;
 import net.kerious.engine.resource.ResourceBundle;
 import net.kerious.engine.resource.ResourceBundleListener;
 import net.kerious.engine.resource.ResourceManager;
 import net.kerious.engine.skin.SkinManager;
 import net.kerious.engine.utils.TemporaryUpdatable;
-import net.kerious.engine.world.event.EntityDestroyedEvent;
 import net.kerious.engine.world.event.Event;
 import net.kerious.engine.world.event.EventManager;
-import net.kerious.engine.world.event.Events;
 
 import com.badlogic.gdx.utils.SnapshotArray;
 
@@ -67,7 +63,7 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		this.skinManager = new SkinManager();
 		this.entityManager = new EntityManager();
 		this.eventManager = new EventManager();
-		this.playerManager = this.createPlayerManager();
+		this.playerManager = new PlayerManager();
 		this.resourceBundle = new ResourceBundle();
 		
 		this.entityManager.setListener(this);
@@ -79,14 +75,6 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	////////////////////////
 	// METHODS
 	////////////////
-
-	/**
-	 * Override this to return your own implementation of the PlayerManager
-	 * @return
-	 */
-	protected PlayerManager createPlayerManager() {
-		return new PlayerManager();
-	}
 	
 	/**
 	 * Register the world to the engine so it starts to update itself
@@ -119,7 +107,6 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 			} else {
 				this.entities.removeValue(entity, true);
 				entity.setWorld(null);
-				entity.removedFromWorld();
 			}
 		}
 		this.entities.end();
@@ -147,16 +134,13 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 
 	@Override
 	public void onEntityDestroyed(int entityId) {
-		if (this.hasAuthority) {
-			EntityDestroyedEvent event = (EntityDestroyedEvent)this.eventManager.createEvent(Events.EntityDestroyed);
-			event.entityId = entityId;
-			
-			this.fireEvent(event);
-			
-			event.release();
-		}
+		
 	}
 	
+	/**
+	 * Convenience method to fire an event
+	 * @param event
+	 */
 	public void fireEvent(Event event) {
 		this.eventManager.fireEvent(event);
 	}
@@ -189,6 +173,8 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		this.resourcesLoaded = true;
 		this.failedLoadingResources = false;
 		this.loadingFailedReason = null;
+		this.entityManager.registerEventListeners(this.eventManager);
+		this.playerManager.registerEventListeners(this.eventManager);
 		this.worldReady();
 	}
 
@@ -206,7 +192,6 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	public void onLoadingProgressChanged(ResourceManager manager, ResourceBundle bundle, float progressRatio) {
 		
 	}
-	
 
 	/**
 	 * Closes every resources held by the world
@@ -215,15 +200,6 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	public void close() {
 		this.detachView();
 		this.unloadResources();
-	}
-	
-	/**
-	 * This method is called on the client to generate a command packet that portrays the inputs
-	 * If not null, the client will send it otherwise it will send a keep alive instead
-	 * @return
-	 */
-	public KeriousPacket generateCommandPacket(KeriousProtocol protocol) {
-		return null;
 	}
 	
 	////////////////////////
@@ -243,7 +219,7 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	public void setHasAuthority(boolean value) {
 		this.hasAuthority = value;
 		this.skinManager.setAutoAttributeId(value);
-		this.eventManager.setAutoAttributeId(value);
+		this.eventManager.setCanGenerateEvent(value);
 	}
 	
 	public Console getConsole() {

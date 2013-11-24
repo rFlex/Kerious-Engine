@@ -9,18 +9,17 @@
 
 package net.kerious.engine.entity;
 
-import net.kerious.engine.entity.model.EntityModel;
-import me.corsin.javatools.misc.Pool;
 import me.corsin.javatools.misc.Poolable;
+import net.kerious.engine.entity.model.EntityModel;
+import net.kerious.engine.utils.ControllerFactory;
 
-public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityModel> {
+public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityModel>
+				extends ControllerFactory<T, T2> {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 	
-	final private Pool<T> entitiesPool;
-	final private Pool<T2> entityModelsPool;
 	private byte entityType;
 
 	////////////////////////
@@ -28,18 +27,7 @@ public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityMo
 	////////////////
 	
 	public EntityCreator() {
-		this.entitiesPool = new Pool<T>() {
-			@Override
-			protected T instantiate() {
-				return newEntity();
-			}
-		};
-		this.entityModelsPool = new Pool<T2>() {
-			@Override
-			protected T2 instantiate() {
-				return newEntityModel();
-			}
-		};
+
 	}
 
 	////////////////////////
@@ -48,33 +36,32 @@ public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityMo
 	
 	abstract protected T newEntity();
 	abstract protected T2 newEntityModel();
-
-	public T createEntity(T2 entityModel) throws EntityException {
-		T entity = this.entitiesPool.obtain();
-		
-		if (entity == null) {
-			throw new EntityException(entityType, "No entity was created from the EntityCreator");
-		}
-		
-		entity.setModel(entityModel);
-		entity.initialize();
-		
-		return entity;
+	
+	protected T newController() {
+		return this.newEntity();
 	}
 	
-	public T2 createEntityModel() throws EntityException {
-		T2 entityModel = this.entityModelsPool.obtain();
-		
-		if (entityModel == null) {
-			throw new EntityException(this.entityType, "No entity model was created from the EntityCreator");
-		}
+	protected T2 newModel() {
+		return this.newEntityModel();
+	}
+	
+	public T createEntity() {
+		return super.createController();
+	}
+
+	public T createEntity(T2 entityModel) {
+		return super.createController(entityModel);
+	}
+	
+	public T2 createEntityModel() {
+		T2 entityModel = super.createModel();
 		
 		entityModel.type = this.entityType;
 		
 		return entityModel;
 	}
 	
-	public void preload(int quantity) throws EntityException {
+	public void preload(int quantity) {
 		Poolable[] entities = new Poolable[quantity];
 		Poolable[] models = new Poolable[quantity];
 		
@@ -88,7 +75,6 @@ public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityMo
 		
 		for (int i = 0; i < quantity; i++) {
 			entities[i].release();
-			models[i].release();
 		}
 	}
 
@@ -102,14 +88,6 @@ public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityMo
 
 	public void setEntityType(byte entityType) {
 		this.entityType = entityType;
-	}
-
-	public Pool<T> getEntitiesPool() {
-		return entitiesPool;
-	}
-
-	public Pool<T2> getEntityModelsPool() {
-		return entityModelsPool;
 	}
 
 }

@@ -16,6 +16,9 @@ public class Events {
 	////////////////
 	
 	public static final byte EntityDestroyed = 1;
+	public static final byte EntityCreated = 2;
+	public static final byte PlayerJoined = 3;
+	public static final byte PlayerLeft = 4;
 
 	////////////////////////
 	// CONSTRUCTORS

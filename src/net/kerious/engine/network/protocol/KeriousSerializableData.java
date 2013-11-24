@@ -12,8 +12,6 @@ package net.kerious.engine.network.protocol;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import net.kerious.engine.KeriousException;
-
 import me.corsin.javatools.misc.PoolableImpl;
 
 public abstract class KeriousSerializableData extends PoolableImpl {
@@ -68,14 +66,6 @@ public abstract class KeriousSerializableData extends PoolableImpl {
 		buffer.putChar((char)0);
 	}
 	
-	public KeriousSerializableData clone() {
-		KeriousSerializableData element = (KeriousSerializableData)this.getPool().obtain();
-		
-		this.copyTo(element);
-		
-		return element;
-	}
-	
 	@Override
 	public void reset() {
 		this.retainCount = 1;
@@ -94,7 +84,6 @@ public abstract class KeriousSerializableData extends PoolableImpl {
 		}
 	}
 	
-	abstract public void copyTo(KeriousSerializableData object);
 	abstract public void deserialize(KeriousProtocol protocol, ByteBuffer buffer) throws IOException;
 	abstract public void serialize(KeriousProtocol protocol, ByteBuffer buffer);
 

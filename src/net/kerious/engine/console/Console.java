@@ -9,6 +9,9 @@
 
 package net.kerious.engine.console;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
 
@@ -21,6 +24,7 @@ public class Console {
 	private ObjectMap<String, ConsoleCommand> commands;
 	private Array<String> tmpArray;
 	private StringBuilder sb;
+	private boolean showExceptionsStacktrace;
 	
 	////////////////////////
 	// CONSTRUCTORS
@@ -207,7 +211,16 @@ public class Console {
 			try {
 				consoleCommand.handle(parameters);
 			} catch (Throwable e) {
-				this.printError("Command failed: " + e.getMessage());
+				String message = null;
+				
+				if (this.showExceptionsStacktrace) {
+					StringWriter errors = new StringWriter();
+					e.printStackTrace(new PrintWriter(errors));
+					message = errors.toString();
+				} else {
+					message = e.getMessage();
+				}
+				this.printError("Command failed: " + message);
 			}
 			
 		} else {
@@ -232,5 +245,13 @@ public class Console {
 	
 	public ObjectMap<String, ConsoleCommand> getCommands() {
 		return this.commands;
+	}
+
+	public boolean isShowExceptionsStacktrace() {
+		return showExceptionsStacktrace;
+	}
+
+	public void setShowExceptionsStacktrace(boolean showExceptionsStacktrace) {
+		this.showExceptionsStacktrace = showExceptionsStacktrace;
 	}
 }

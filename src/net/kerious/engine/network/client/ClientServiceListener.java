@@ -10,7 +10,7 @@
 package net.kerious.engine.network.client;
 
 import net.kerious.engine.entity.model.EntityModel;
-import net.kerious.engine.player.Player;
+import net.kerious.engine.player.PlayerModel;
 import net.kerious.engine.world.event.Event;
 
 import com.badlogic.gdx.utils.Array;
@@ -18,7 +18,7 @@ import com.badlogic.gdx.utils.ObjectMap;
 
 public interface ClientServiceListener {
 
-	void onReceivedSnapshot(ClientService clientService, Array<Player> players, Array<EntityModel> entityModels, Array<Event> events);
+	void onReceivedSnapshot(ClientService clientService, Array<PlayerModel> players, Array<EntityModel> entityModels, Array<Event> events);
 	void onReceivedWorldInformations(ClientService clientService, ObjectMap<String, String> informations, boolean shouldLoadWorld);
 	void onReceivedInformation(ClientService clientService, String informationType, String message);
 	void onDisconnected(ClientService clientService, String ip, int port, String reason);

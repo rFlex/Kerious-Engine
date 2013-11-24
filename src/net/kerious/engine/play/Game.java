@@ -19,7 +19,7 @@ import net.kerious.engine.console.ConsoleCommand;
 import net.kerious.engine.entity.model.EntityModelCreator;
 import net.kerious.engine.network.client.AbstractKeriousProtocolService;
 import net.kerious.engine.network.protocol.KeriousProtocol;
-import net.kerious.engine.player.PlayerCreator;
+import net.kerious.engine.player.PlayerModelCreator;
 import net.kerious.engine.utils.TemporaryUpdatable;
 import net.kerious.engine.world.World;
 import net.kerious.engine.world.event.EventCreator;
@@ -144,6 +144,15 @@ public abstract class Game implements TemporaryUpdatable, Closeable {
 		
 		return world;
 	}
+	
+	protected World getWorldIfReady() {
+		World world = this.world;
+
+		if (world != null && world.isResourcesLoaded()) {
+			return world;
+		}
+		return null;
+	}
 
 	////////////////////////
 	// GETTERS/SETTERS
@@ -168,7 +177,7 @@ public abstract class Game implements TemporaryUpdatable, Closeable {
 			
 			EntityModelCreator entityModelCreator = null;
 			EventCreator eventCreator = null;
-			PlayerCreator playerCreator = null;
+			PlayerModelCreator playerCreator = null;
 			
 			if (world != null) {
 				entityModelCreator = world.getEntityManager();

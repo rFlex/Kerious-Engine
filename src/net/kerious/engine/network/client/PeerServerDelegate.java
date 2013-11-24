@@ -14,5 +14,6 @@ import com.badlogic.gdx.utils.ObjectMap;
 public interface PeerServerDelegate {
 	
 	void fillWorldInformations(ClientPeer peer, ObjectMap<String, String> informations);
+	void updateWorldWithCommands(ClientPeer peer, float directionAngle, float directionStrength, int actions);
 
 }

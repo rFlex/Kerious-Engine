@@ -9,19 +9,12 @@
 
 package net.kerious.engine.world.event;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-
-import net.kerious.engine.network.protocol.KeriousProtocol;
-import net.kerious.engine.network.protocol.KeriousSerializableData;
-
-public class EntityDestroyedEvent extends Event {
+public class EntityDestroyedEvent extends EntityEvent {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 	
-	public int entityId;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -35,33 +28,12 @@ public class EntityDestroyedEvent extends Event {
 	// METHODS
 	////////////////
 	
-	@Override
-	public void copyTo(KeriousSerializableData object) {
-		super.copyTo(object);
-		EntityDestroyedEvent event = (EntityDestroyedEvent)object;
-		
-		event.entityId = this.entityId;
-	}
-	
-	@Override
-	public void deserialize(KeriousProtocol protocol, ByteBuffer buffer) throws IOException {
-		super.deserialize(protocol, buffer);
-		
-		this.entityId = buffer.getInt();
-	}
+	public static void createAndFire(EventManager eventManager, int entityId) {
+		EntityDestroyedEvent entityCreatedEvent = (EntityDestroyedEvent)eventManager.createEvent(Events.EntityDestroyed);
 
-	@Override
-	public void serialize(KeriousProtocol protocol, ByteBuffer buffer) {
-		super.serialize(protocol, buffer);
+		entityCreatedEvent.entityId = entityId;
 		
-		buffer.putInt(this.entityId);
-	}
-	
-	@Override
-	public void reset() {
-		super.reset();
-		
-		this.entityId = 0;
+		fire(eventManager, entityCreatedEvent);
 	}
 
 	////////////////////////

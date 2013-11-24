@@ -20,7 +20,7 @@ import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.network.protocol.ServerPeerListener;
 import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
-import net.kerious.engine.player.Player;
+import net.kerious.engine.player.PlayerModel;
 import net.kerious.engine.world.event.Event;
 
 public class ClientService extends AbstractKeriousProtocolService implements ServerPeerListener {
@@ -162,7 +162,7 @@ public class ClientService extends AbstractKeriousProtocolService implements Ser
 	}
 
 	@Override
-	public void onReceivedSnapshot(ServerPeer peer, Array<Player> players, Array<EntityModel> entityModels, Array<Event> events) {
+	public void onReceivedSnapshot(ServerPeer peer, Array<PlayerModel> players, Array<EntityModel> entityModels, Array<Event> events) {
 		if (this.listener != null) {
 			this.listener.onReceivedSnapshot(this, players, entityModels, events);
 		}

@@ -11,11 +11,18 @@ package net.kerious.engine.entity;
 
 import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.entity.model.EntityModelCreator;
+import net.kerious.engine.world.event.EntityCreatedEvent;
+import net.kerious.engine.world.event.EntityDestroyedEvent;
+import net.kerious.engine.world.event.Event;
+import net.kerious.engine.world.event.EventListener;
+import net.kerious.engine.world.event.EventListenerRegisterer;
+import net.kerious.engine.world.event.EventManager;
+import net.kerious.engine.world.event.Events;
 
 import com.badlogic.gdx.utils.IntMap;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
-public class EntityManager implements EntityModelCreator {
+public class EntityManager implements EntityModelCreator, EventListenerRegisterer {
 	
 	////////////////////////
 	// VARIABLES
@@ -25,6 +32,7 @@ public class EntityManager implements EntityModelCreator {
 	final private IntMap<EntityCreator> entityCreators;
 	private EntityManagerListener listener;
 	private int sequence;
+	private EventManager eventManager;
 	
 	////////////////////////
 	// CONSTRUCTORS
@@ -38,7 +46,27 @@ public class EntityManager implements EntityModelCreator {
 	////////////////////////
 	// METHODS
 	////////////////
-
+	
+	@Override
+	public void registerEventListeners(EventManager eventManager) {
+		this.eventManager = eventManager;
+		
+		if (!eventManager.canGenerateEvent()) {
+			eventManager.addListener(Events.EntityCreated, new EventListener() {
+				public void onEventFired(EventManager eventManager, Event event) {
+					EntityCreatedEvent entityCreatedEvent = (EntityCreatedEvent)event;
+					createEntity(entityCreatedEvent.entityType, entityCreatedEvent.entityId);
+				}					
+			});
+			eventManager.addListener(Events.EntityDestroyed, new EventListener() {
+				public void onEventFired(EventManager eventManager, Event event) {
+					EntityDestroyedEvent entityDestroyedEvent = (EntityDestroyedEvent)event;
+					destroyEntity(entityDestroyedEvent.entityId);
+				}
+			});
+		}
+	}
+	
 	public void preload(int entityType, int quantity) throws EntityException {
 		this.getEntityCreator(entityType).preload(quantity);
 	}
@@ -69,6 +97,10 @@ public class EntityManager implements EntityModelCreator {
 		
 		this.entities.put(entityModel.id, entity);
 		
+		if (this.eventManager.canGenerateEvent()) {
+			EntityCreatedEvent.createAndFire(this.eventManager, entityModel.id, entityModel.type);
+		}
+		
 		if (this.listener != null) {
 			this.listener.onEntityCreated(entity);
 		}
@@ -76,23 +108,27 @@ public class EntityManager implements EntityModelCreator {
 		return entity;
 	}
 	
-	public Entity createEntity(int entityType) throws EntityException {
+	/**
+	 * Create an Entity of type entityType and attribute a generated ID
+	 * @param entityType
+	 * @return the created Entity
+	 */
+	public Entity createEntity(int entityType) {
+		this.sequence++;
+		return this.createEntity(entityType, this.sequence);
+	}
+	
+	/**
+	 * Create an Entity of type entityType and attribute the specified entityId
+	 * @param entityType
+	 * @param entityId
+	 * @return the created Entity
+	 */
+	public Entity createEntity(int entityType, int entityId) {
 		EntityCreator entityCreator = this.getEntityCreator(entityType);
 		
 		EntityModel entityModel = entityCreator.createEntityModel();
-		entityModel.id = this.sequence++;
-		
-		return this.createEntity(entityCreator, entityModel);
-	}
-	
-	public Entity createEntity(EntityModel entityModel) throws EntityException {
-		if (entityModel == null) {
-			throw new IllegalArgumentException("entityModel may not be null");
-		}
-		
-		int entityType = entityModel.type;
-		
-		EntityCreator entityCreator = this.getEntityCreator(entityType);
+		entityModel.id = entityId;
 		
 		return this.createEntity(entityCreator, entityModel);
 	}
@@ -102,6 +138,8 @@ public class EntityManager implements EntityModelCreator {
 		
 		if (entity != null) {
 			this.destroyEntity(entity);
+		} else {
+			throw new EntityException(0, "No such entity: " + entityId);
 		}
 	}
 	
@@ -110,7 +148,7 @@ public class EntityManager implements EntityModelCreator {
 			throw new IllegalArgumentException("entity may not be null");
 		}
 		
-		EntityModel model = entity.getModel();
+		EntityModel model = (EntityModel)entity.getModel();
 		
 		if (model == null) {
 			throw new IllegalArgumentException("the entity doesn't have any model");
@@ -120,7 +158,10 @@ public class EntityManager implements EntityModelCreator {
 		
 		this.entities.remove(entityId);
 		
-		entity.setModel(null);
+		if (this.eventManager.canGenerateEvent()) {
+			EntityDestroyedEvent.createAndFire(this.eventManager, entityId);
+		}
+		
 		entity.release();
 		
 		if (this.listener != null) {
@@ -137,9 +178,7 @@ public class EntityManager implements EntityModelCreator {
 	public void updateEntity(EntityModel entityModel) throws EntityException {
 		Entity entity = this.getEntity(entityModel.id);
 		
-		if (entity == null) {
-			entity = this.createEntity(entityModel);
-		} else {
+		if (entity != null) {
 			entity.setModel(entityModel);
 		}
 	}
@@ -163,5 +202,4 @@ public class EntityManager implements EntityModelCreator {
 	public Iterable<Entity> getEntites() {
 		return this.entities.values();
 	}
-
 }

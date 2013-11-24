@@ -34,7 +34,6 @@ public class EntityModel extends KeriousSerializableData {
 	////////////////
 	
 	public EntityModel() {
-		
 	}
 
 	////////////////////////
@@ -44,6 +43,7 @@ public class EntityModel extends KeriousSerializableData {
 	@Override
 	public void reset() {
 		super.reset();
+		
 		this.type = 0;
 		this.id = 0;
 		this.parentId = 0;
@@ -52,20 +52,6 @@ public class EntityModel extends KeriousSerializableData {
 		this.y = 0;
 		this.width = 0;
 		this.height = 0;
-	}
-
-	@Override
-	public void copyTo(KeriousSerializableData ksd) {
-		EntityModel object = (EntityModel)ksd;
-		
-		object.type = this.type;
-		object.id = this.id;
-		object.parentId = this.parentId;
-		object.skinId = this.skinId;
-		object.x = this.x;
-		object.y = this.y;
-		object.width = this.width;
-		object.height = this.height;
 	}
 
 	@Override

@@ -13,10 +13,12 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import me.corsin.javatools.misc.Pool;
+import me.corsin.javatools.misc.ReflectionPool;
 import net.kerious.engine.KeriousException;
 import net.kerious.engine.entity.EntityException;
 import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.entity.model.EntityModelCreator;
+import net.kerious.engine.network.protocol.packet.BasicCommandPacket;
 import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.InformationPacket;
 import net.kerious.engine.network.protocol.packet.KeepAlivePacket;
@@ -24,8 +26,8 @@ import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.network.protocol.packet.RequestPacket;
 import net.kerious.engine.network.protocol.packet.SnapshotPacket;
 import net.kerious.engine.network.protocol.packet.WorldInformationsPacket;
-import net.kerious.engine.player.Player;
-import net.kerious.engine.player.PlayerCreator;
+import net.kerious.engine.player.PlayerModel;
+import net.kerious.engine.player.PlayerModelCreator;
 import net.kerious.engine.utils.FactoryManager;
 import net.kerious.engine.world.event.Event;
 import net.kerious.engine.world.event.EventCreator;
@@ -38,7 +40,7 @@ public class KeriousProtocol extends FactoryManager implements INetworkProtocol 
 	
 	private EntityModelCreator entityModelCreator;
 	private EventCreator eventCreator;
-	private PlayerCreator playerCreator;
+	private PlayerModelCreator playerCreator;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -85,6 +87,8 @@ public class KeriousProtocol extends FactoryManager implements INetworkProtocol 
 				return new InformationPacket();
 			}			
 		});
+		
+		this.registerPacketType(KeriousPacket.TypeBasicCommand, new ReflectionPool<BasicCommandPacket>(BasicCommandPacket.class));
 	}
 	
 	public <T extends KeriousPacket> void registerPacketType(byte packetType, Pool<T> packetPool) {
@@ -136,12 +140,12 @@ public class KeriousProtocol extends FactoryManager implements INetworkProtocol 
 		return packet;
 	}
 	
-	final public Player createPlayer() {
+	final public PlayerModel createPlayer() {
 		if (this.playerCreator == null) {
 			throw new KeriousException("No player creator was set in the KeriousProtocol"); 
 		}
 		
-		return this.playerCreator.createPlayer();
+		return this.playerCreator.createPlayerModel();
 	}
 	
 	final public Event createEvent(byte eventType) {
@@ -211,11 +215,11 @@ public class KeriousProtocol extends FactoryManager implements INetworkProtocol 
 		this.eventCreator = eventCreator;
 	}
 
-	public PlayerCreator getPlayerCreator() {
+	public PlayerModelCreator getPlayerCreator() {
 		return playerCreator;
 	}
 
-	public void setPlayerCreator(PlayerCreator playerCreator) {
+	public void setPlayerCreator(PlayerModelCreator playerCreator) {
 		this.playerCreator = playerCreator;
 	}
 }

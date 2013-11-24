@@ -17,5 +17,6 @@ public interface ServerServiceDelegate {
 	
 	void fillWorldInformations(ServerService server, ObjectMap<String, String> informations);
 	boolean shouldAcceptConnection(ServerService server, String ip, int port, ValueHolder<String> outReason);
+	void updateWorldWithCommands(ServerService server, int playerId, float directionAngle, float directionStrength, int actions);
 
 }

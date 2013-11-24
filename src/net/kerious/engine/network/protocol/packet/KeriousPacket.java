@@ -28,6 +28,7 @@ public abstract class KeriousPacket extends KeriousSerializableData {
 	public static final byte TypeSnapshot = 5;
 	public static final byte TypeRequest = 6;
 	public static final byte TypeWorldInformations = 7;
+	public static final byte TypeBasicCommand = 8;
 	
 	public static final byte OptionIgnoreIfLost = 0x0;
 	public static final byte OptionResendIfLost = 0x1;
@@ -74,15 +75,6 @@ public abstract class KeriousPacket extends KeriousSerializableData {
 		this.options = 0;
 	}
 
-	@Override
-	public void copyTo(KeriousSerializableData object) {
-		KeriousPacket keriousPacket = (KeriousPacket)object;
-		
-		keriousPacket.sequence = this.sequence;
-		keriousPacket.lastSequenceReceived = this.lastSequenceReceived;
-		keriousPacket.ack = this.ack;
-	}
-	
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////

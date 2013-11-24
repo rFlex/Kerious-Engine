@@ -27,7 +27,7 @@ public class EventManager extends FactoryManager implements EventCreator {
 	private IntMap<SnapshotArray<EventListener>> listeners;
 	private IntSet firedEvents;
 	private EventManagerListener listener;
-	private boolean autoAttributeId;
+	private boolean canGenerateEvent;
 	private int sequence;
 	
 	////////////////////////
@@ -45,7 +45,10 @@ public class EventManager extends FactoryManager implements EventCreator {
 	////////////////
 	
 	private void registerBuiltInEvents() {
+		this.registerEventType(Events.EntityCreated, EntityCreatedEvent.class);
 		this.registerEventType(Events.EntityDestroyed, EntityDestroyedEvent.class);
+		this.registerEventType(Events.PlayerJoined, PlayerJoinedEvent.class);
+		this.registerEventType(Events.PlayerLeft, PlayerLeftEvent.class);
 	}
 	
 	public <T extends Event> void registerEventType(byte eventType, Class<T> eventClass) {
@@ -102,7 +105,7 @@ public class EventManager extends FactoryManager implements EventCreator {
 	public Event createEvent(byte eventType) {
 		Event event =  (Event)this.createObject(eventType);
 		
-		if (this.autoAttributeId) {
+		if (this.canGenerateEvent) {
 			this.sequence++;
 			event.id = this.sequence;
 		}
@@ -145,12 +148,12 @@ public class EventManager extends FactoryManager implements EventCreator {
 	// GETTERS/SETTERS
 	////////////////
 	
-	public boolean isAutoAttributeId() {
-		return autoAttributeId;
+	public boolean canGenerateEvent() {
+		return this.canGenerateEvent;
 	}
-
-	public void setAutoAttributeId(boolean autoAttributeId) {
-		this.autoAttributeId = autoAttributeId;
+	
+	public void setCanGenerateEvent(boolean canGenerateEvent) {
+		this.canGenerateEvent = canGenerateEvent;
 	}
 
 	public EventManagerListener getListener() {

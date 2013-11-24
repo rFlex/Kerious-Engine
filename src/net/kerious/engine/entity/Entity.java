@@ -9,15 +9,16 @@
 
 package net.kerious.engine.entity;
 
-import me.corsin.javatools.misc.PoolableImpl;
 import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.skin.SkinException;
+import net.kerious.engine.utils.Controller;
 import net.kerious.engine.utils.TemporaryUpdatable;
 import net.kerious.engine.view.View;
 import net.kerious.engine.world.World;
 
 @SuppressWarnings("rawtypes")
-public class Entity<EntityModelType extends EntityModel, ViewType extends View> extends PoolableImpl implements TemporaryUpdatable {
+public abstract class Entity<EntityModelType extends EntityModel, ViewType extends View>
+								extends Controller<EntityModelType> implements TemporaryUpdatable {
 
 	////////////////////////
 	// VARIABLES
@@ -25,19 +26,18 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	
 	private Entity parentEntity;
 	private EntityManager entityManager;
-	private EntityModelType model;
 	private World world;
 	private ViewType view;
 	private int currentSkinId;
 	private boolean shouldBeRemoved;
 	private boolean destroyWhenRemoved;
+	private boolean worldRenderingEnabled;
 
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 	
 	public Entity() {
-		
 	}
 
 	////////////////////////
@@ -48,16 +48,12 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	 * Updated every frame. This is where you should update the entity logic
 	 * @param deltaTime
 	 */
-	public void update(float deltaTime) {
-		// Update entity logic
-	}
+	public abstract void update(float deltaTime);
 	
 	/**
 	 * Called when the Entity has just been created and a model has been set for the first time
 	 */
-	public void initialize() {
-		// Build entity from the set model
-	}
+	public abstract void initialize();
 	
 	/**
 	 * This is where the Entity decides to add its view to the world. The basic implementation adds
@@ -68,7 +64,7 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	 * @param view
 	 * @param world
 	 */
-	protected void addViewToWorld(ViewType view, World world) {
+	protected void addViewToWorld() {
 		if (this.parentEntity != null) {
 			View parentView = this.parentEntity.getView();
 			
@@ -88,9 +84,14 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 		}
 	}
 	
-	protected void updateView(ViewType view, EntityModelType model) {
-		view.setFrame(model.x, model.y, model.width, model.height);
-		view.setPosition(model.x, model.y);
+	/**
+	 * Update the Entity's view so it matches the model
+	 */
+	public void updateView() {
+		if (view != null) {
+			view.setFrame(model.x, model.y, model.width, model.height);
+			view.setPosition(model.x, model.y);			
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -113,20 +114,17 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 		return null;
 	}
 	
-	final private void updateSkin(EntityModelType model) {
+	/**
+	 * Update the Entity's skin so it matches its EntityModel
+	 */
+	final public void updateSkin() {
 		if (model != null) {
-			if (this.world != null) {
-				if (this.world.isRenderingEnabled()) {
-					int skinId = this.model.skinId;
-					// Skin has changed
-					if (this.currentSkinId != skinId) {
-						this.currentSkinId = skinId;
-						this.setView(this.createViewFromSkinId(skinId));
-					} else {
-						if (this.view != null) {
-							this.updateView(this.view, model);
-						}
-					}
+			if (this.worldRenderingEnabled) {
+				int skinId = this.model.skinId;
+				// Skin has changed
+				if (this.currentSkinId != skinId) {
+					this.currentSkinId = skinId;
+					this.setView(this.createViewFromSkinId(skinId));
 				}
 			}
 		} else {
@@ -134,14 +132,17 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 		}
 	}
 	
-	final private void updateParent(EntityModelType model) {
+	/**
+	 * Update the Entity's parent so it matches its EntityModel
+	 */
+	final public void updateParent() {
 		int parentId = 0;
 		
 		if (model != null) {
 			parentId = model.parentId;
 		}
 		
-		EntityModel parentModel = this.parentEntity != null ? this.parentEntity.getModel() : null;
+		EntityModel parentModel = this.parentEntity != null ? (EntityModel)this.parentEntity.model : null;
 				
 		if (parentId == 0 || parentModel == null) {
 			this.setParentEntity(null);
@@ -153,41 +154,45 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	}
 	
 	/**
-	 * Signal to the entity that the model has changed
-	 * This method needs to be called everytime the model is changed
+	 * Called when the Entity's model has been changed
+	 * The contract here is to update the Entity's attribute
+	 * so every model's fields match the Entity
 	 */
-	public void modelChanged() {
-		EntityModelType model = this.model;
-		
-		this.updateSkin(model);
-		this.updateParent(model);
+	@Override
+	protected void modelChanged() {
+		this.updateParent();
+		this.updateSkin();
+		this.updateView();
 	}
 	
-	public void parentChanged() {
+	/**
+	 * Called when the parent Entity changed
+	 */
+	protected void parentChanged() {
 		
 	}
 	
 	/**
 	 * Called when the view has changed
 	 */
-	public void viewChanged() {
+	protected void viewChanged() {
 		
 	}
 	
 	/**
-	 * Signal to the entity that it has been removed from the world
+	 * Called when the Entity has been removed from the world
 	 */
-	public void removedFromWorld() {
+	protected void removedFromWorld() {
 		if (this.destroyWhenRemoved) {
 			this.destroyFromEntityManager();
 		}
 	}
 	
 	/**
-	 * Signal to the entity that it has been added to the world
+	 * Called when the Entity has been added to the world
 	 */
 	public void addedToWorld() {
-		this.updateSkin(this.model);
+		this.updateSkin();
 	}
 	
 	/**
@@ -225,14 +230,18 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 		this.setView(null);
 	}
 	
+	/**
+	 * Change the entity skin
+	 * @param skinName
+	 */
 	public void setSkin(String skinName) {
 		if (this.world != null) {
 			try {
 				short skinId = this.world.getSkinManager().getSkinIdForSkinName(skinName);
-				this.getModel().skinId = skinId;
-				this.modelChanged();
+				this.model.skinId = skinId;
+				this.updateSkin();
 			} catch (SkinException e) {
-				this.world.getEngine().getConsole().print("ERROR: Unable to set skin: " + e.getMessage());
+				this.world.getConsole().printError("Unable to set skin to Entity" + this.model.id + ": " + e.getMessage());
 			}
 		} else {
 			System.err.println("ERROR: Attempted to set a skin to an entity which is not in a world");
@@ -252,26 +261,32 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 		this.model.x = x;
 		this.model.y = y;
 		
-		this.modelChanged();
+		if (this.worldRenderingEnabled) {
+			this.updateView();
+		}
 	}
 	
-	public EntityModelType getModel() {
-		return this.model;
+	public void setSize(float width, float height) {
+		this.model.width = width;
+		this.model.height = height;
+		
+		if (this.worldRenderingEnabled) {
+			this.updateView();
+		}
 	}
 	
-	public void setModel(EntityModelType model) {
-		if (this.model != model) {
-			if (this.model != null) {
-				this.model.release();
-			}
-			
-			this.model = model;
-			
-			if (model != null) {
-				model.retain();
-			}
-			
-			this.modelChanged();
+	public int getEntityId() {
+		return this.model.id;
+	}
+	
+	public void setFrame(float x, float y, float width, float height) {
+		this.model.x = x;
+		this.model.y = y;
+		this.model.width = width;
+		this.model.height = height;
+		
+		if (this.worldRenderingEnabled) {
+			this.updateView();
 		}
 	}
 
@@ -290,11 +305,7 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 			
 			if (view != null) {
 				if (this.world != null) {
-					this.addViewToWorld(view, this.world);
-				}
-				
-				if (this.model != null) {
-					this.updateView(view, this.model);
+					this.addViewToWorld();
 				}
 			}
 			this.viewChanged();
@@ -312,6 +323,12 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 
 	public void setWorld(World world) {
 		this.world = world;
+		
+		this.worldRenderingEnabled = world != null && world.isRenderingEnabled();
+		
+		if (world == null) {
+			this.removedFromWorld();
+		}
 	}
 
 	public EntityManager getEntityManager() {
@@ -329,6 +346,7 @@ public class Entity<EntityModelType extends EntityModel, ViewType extends View> 
 	public void setParentEntity(Entity parentEntity) {
 		if (this.parentEntity != parentEntity) {
 			this.parentEntity = parentEntity;
+			this.model.parentId = parentEntity != null ? ((EntityModel)parentEntity.model).parentId : 0;
 			
 			this.parentChanged();
 		}

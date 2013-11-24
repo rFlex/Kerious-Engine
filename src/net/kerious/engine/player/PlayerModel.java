@@ -1,13 +1,13 @@
 /////////////////////////////////////////////////
 // Project : Kerious Engine
 // Package : net.kerious.engine.world
-// GameEvent.java
+// Player.java
 //
 // Author : Simon CORSIN <simoncorsin@gmail.com>
-// File created on Nov 20, 2013 at 8:44:31 PM
+// File created on Nov 21, 2013 at 6:20:19 PM
 ////////
 
-package net.kerious.engine.world.event;
+package net.kerious.engine.player;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -15,23 +15,19 @@ import java.nio.ByteBuffer;
 import net.kerious.engine.network.protocol.KeriousProtocol;
 import net.kerious.engine.network.protocol.KeriousSerializableData;
 
-public abstract class Event extends KeriousSerializableData {
+public class PlayerModel extends KeriousSerializableData {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 	
-	final public byte type;
 	public int id;
-	
+	public String name;
+
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
-	
-	public Event(byte type) {
-		this.type = type;
-	}
-	
+
 	////////////////////////
 	// METHODS
 	////////////////
@@ -39,11 +35,13 @@ public abstract class Event extends KeriousSerializableData {
 	@Override
 	public void deserialize(KeriousProtocol protocol, ByteBuffer buffer) throws IOException {
 		this.id = buffer.getInt();
+		this.name = this.getString(buffer);
 	}
 
 	@Override
 	public void serialize(KeriousProtocol protocol, ByteBuffer buffer) {
 		buffer.putInt(this.id);
+		this.putString(buffer, this.name);
 	}
 	
 	@Override
@@ -51,16 +49,7 @@ public abstract class Event extends KeriousSerializableData {
 		super.reset();
 		
 		this.id = 0;
-	}
-	
-	public int hashCode() {
-		return this.id;
-	}
-	
-	protected static void fire(EventManager eventManager, Event event) {
-		eventManager.fireEvent(event);
-		
-		event.release();
+		this.name = null;
 	}
 
 	////////////////////////

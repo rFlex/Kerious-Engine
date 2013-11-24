@@ -13,12 +13,14 @@ import java.net.InetAddress;
 
 import net.kerious.engine.entity.Entity;
 import net.kerious.engine.network.protocol.KeriousProtocolPeer;
+import net.kerious.engine.network.protocol.packet.BasicCommandPacket;
 import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.network.protocol.packet.RequestPacket;
 import net.kerious.engine.network.protocol.packet.SnapshotPacket;
 import net.kerious.engine.network.protocol.packet.WorldInformationsPacket;
 import net.kerious.engine.player.Player;
+import net.kerious.engine.player.PlayerModel;
 import net.kerious.engine.world.World;
 import net.kerious.engine.world.event.Event;
 
@@ -93,6 +95,15 @@ public class ClientPeer extends KeriousProtocolPeer {
 				return false;
 			}
 			break;
+		case KeriousPacket.TypeBasicCommand:
+			BasicCommandPacket commandPacket = (BasicCommandPacket)packet;
+			
+			if (this.delegate != null) {
+				this.delegate.updateWorldWithCommands(this, commandPacket.directionAngle,
+						commandPacket.directionStrength, commandPacket.actionsBitfield);
+			}
+		break;
+		
 		default:
 			return false;
 		}
@@ -112,8 +123,8 @@ public class ClientPeer extends KeriousProtocolPeer {
 			snapshotPacket.addModel(entity.getModel());
 		}
 
-		for (Player player : world.getPlayerManager().getPlayers()) {
-			snapshotPacket.addPlayer(player);
+		for (Player<PlayerModel> player : world.getPlayerManager().getPlayers()) {
+			snapshotPacket.addPlayer(player.getModel());
 		}
 
 		for (Event event : this.pendingEvents) {

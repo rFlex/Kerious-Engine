@@ -14,7 +14,7 @@ import java.nio.ByteBuffer;
 
 import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.network.protocol.KeriousProtocol;
-import net.kerious.engine.player.Player;
+import net.kerious.engine.player.PlayerModel;
 import net.kerious.engine.world.event.Event;
 
 import com.badlogic.gdx.utils.Array;
@@ -25,7 +25,7 @@ public class SnapshotPacket extends KeriousPacket {
 	// VARIABLES
 	////////////////
 
-	public Array<Player> players;
+	public Array<PlayerModel> players;
 	public Array<EntityModel> models;
 	public Array<Event> events;
 	
@@ -35,7 +35,7 @@ public class SnapshotPacket extends KeriousPacket {
 	
 	public SnapshotPacket() {
 		super(TypeSnapshot);
-		this.players = new Array<Player>(Player.class);
+		this.players = new Array<PlayerModel>(PlayerModel.class);
 		this.models = new Array<EntityModel>(EntityModel.class);
 		this.events = new Array<Event>(Event.class);
 	}
@@ -56,7 +56,7 @@ public class SnapshotPacket extends KeriousPacket {
 		this.events.add(event);
 	}
 	
-	public void addPlayer(Player player) {
+	public void addPlayer(PlayerModel player) {
 		player.retain();
 		
 		this.players.add(player);
@@ -86,7 +86,7 @@ public class SnapshotPacket extends KeriousPacket {
 		
 		length = buffer.getInt();
 		for (int i = 0; i < length; i++) {
-			Player player = protocol.createPlayer();
+			PlayerModel player = protocol.createPlayer();
 			player.deserialize(protocol, buffer);
 			this.players.add(player);
 		}
@@ -113,9 +113,9 @@ public class SnapshotPacket extends KeriousPacket {
 		}
 		
 		buffer.putInt(this.players.size);
-		Player[] players = this.players.items;
+		PlayerModel[] players = this.players.items;
 		for (int i = 0, length = this.players.size; i < length; i++) {
-			Player player = players[i];
+			PlayerModel player = players[i];
 			player.serialize(protocol, buffer);
 		}
 	}
@@ -142,9 +142,9 @@ public class SnapshotPacket extends KeriousPacket {
 		
 		this.events.size = 0;
 		
-		Player[] players = this.players.items;
+		PlayerModel[] players = this.players.items;
 		for (int i = 0, length = this.players.size; i < length; i++) {
-			Player player = players[i];
+			PlayerModel player = players[i];
 			player.release();
 			players[i] = null;
 		}

@@ -22,14 +22,10 @@ import net.kerious.engine.network.client.ClientService;
 import net.kerious.engine.network.client.ClientServiceListener;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.network.protocol.packet.RequestPacket;
-import net.kerious.engine.player.Player;
+import net.kerious.engine.player.PlayerModel;
 import net.kerious.engine.player.PlayerManager;
 import net.kerious.engine.world.World;
-import net.kerious.engine.world.event.EntityDestroyedEvent;
 import net.kerious.engine.world.event.Event;
-import net.kerious.engine.world.event.EventListener;
-import net.kerious.engine.world.event.EventManager;
-import net.kerious.engine.world.event.Events;
 
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
@@ -43,6 +39,7 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 	private ClientService client;
 	private StringConsoleCommand nameCommand;
 	private ClientGameListener listener;
+	private CommandPacketCreator commandPacketCreator;
 	private int myPlayerId;
 	
 	////////////////////////
@@ -93,8 +90,8 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 		if (client.isConnected() && world != null) {
 			KeriousPacket packet = null;
 			
-			if (world.isResourcesLoaded()) {
-				packet = world.generateCommandPacket(this.client.getProtocol());
+			if (world.isResourcesLoaded() && this.commandPacketCreator != null) {
+				packet = this.commandPacketCreator.generateCommandPacket(this.client.getProtocol());
 			}
 			
 			if (packet == null) {
@@ -114,6 +111,7 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 	
 	@Override
 	protected void worldIsReady() {
+		this.commandPacketCreator = this.getCommandPacketCreator(this, this.getWorld());
 		this.client.sendToServer(this.client.getProtocol().createRequestPacket(RequestPacket.RequestBeginReceiveSnapshots));
 	}
 	
@@ -123,13 +121,6 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 		
 		world.setHasAuthority(false);
 		world.setRenderingEnabled(true);
-		
-		world.getEventManager().addListener(Events.EntityDestroyed, new EventListener() {
-			public void onEventFired(EventManager eventManager, Event event) {
-				EntityDestroyedEvent entityDestroyedEvent = (EntityDestroyedEvent)event;
-				world.getEntityManager().destroyEntity(entityDestroyedEvent.entityId);
-			}
-		});
 		
 		return world;
 	}
@@ -184,14 +175,20 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 	}
 
 	@Override
-	public void onReceivedSnapshot(ClientService clientService, Array<Player> players, Array<EntityModel> entityModels, Array<Event> events) {
+	public void onReceivedSnapshot(ClientService clientService, Array<PlayerModel> players, Array<EntityModel> entityModels, Array<Event> events) {
 		World world = this.getWorld();
 		
 		if (world != null && world.isResourcesLoaded()) {
+			final Event[] eventsArray = events.items;
+			for (int i = 0, length = events.size; i < length; i++) {
+				Event event = eventsArray[i];
+				world.fireEvent(event);
+			}
+			
 			final PlayerManager playerManager = world.getPlayerManager();
-			final Player[] playersArray = players.items;
+			final PlayerModel[] playersArray = players.items;
 			for (int i = 0, length = players.size; i < length; i++) {
-				Player player = playersArray[i];
+				PlayerModel player = playersArray[i];
 				playerManager.updatePlayer(player);
 			}
 			
@@ -205,14 +202,16 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 					e.printStackTrace();
 				}
 			}
-			
-			final Event[] eventsArray = events.items;
-			for (int i = 0, length = events.size; i < length; i++) {
-				Event event = eventsArray[i];
-				world.fireEvent(event);
-			}
 		}
 	}
+	
+	/**
+	 * Return the CommandPacketCreator 
+	 * @param game
+	 * @param world
+	 * @return
+	 */
+	protected abstract CommandPacketCreator getCommandPacketCreator(ClientGame game, World world);
 
 	////////////////////////
 	// GETTERS/SETTERS

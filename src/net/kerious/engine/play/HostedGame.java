@@ -59,7 +59,7 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 			e.printStackTrace();
 		}
 		
-		this.maxPlayers = new IntegerConsoleCommand("sv_maxplayers", 0, Integer.MAX_VALUE);
+		this.maxPlayers = new IntegerConsoleCommand("maxplayers", 0, Integer.MAX_VALUE);
 		this.maxPlayers.setValue(32);
 		
 		this.console.registerCommand(this.maxPlayers);
@@ -203,6 +203,15 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 			
 			clientPeer.setReadyToReceiveSnapshots(false);
 			clientPeer.send(this.server.getProtocol().createInformationPacket(InformationPacket.InformationServerIsLoading, null));
+		}
+	}
+
+	@Override
+	public void updateWorldWithCommands(ServerService server, int playerId, float directionAngle, float directionStrength, int actions) {
+		World world = this.getWorldIfReady();
+		
+		if (world != null) {
+			
 		}
 	}
 	

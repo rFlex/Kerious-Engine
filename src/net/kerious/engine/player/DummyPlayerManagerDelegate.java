@@ -1,8 +1,6 @@
 package net.kerious.engine.player;
 
-import net.kerious.engine.utils.Controller;
-
-public abstract class Player<T extends PlayerModel> extends Controller<T> {
+public class DummyPlayerManagerDelegate implements PlayerManagerDelegate {
 
 	////////////////////////
 	// VARIABLES
@@ -12,26 +10,27 @@ public abstract class Player<T extends PlayerModel> extends Controller<T> {
 	// CONSTRUCTORS
 	////////////////
 
-	public Player() {
+	public DummyPlayerManagerDelegate() {
 		super();
 	}
+
 
 	////////////////////////
 	// METHODS
 	////////////////
 	
-	abstract public void update(float deltaTime);
-	
+	@Override
+	public PlayerModel newPlayerModel() {
+		return new PlayerModel();
+	}
+
+	@Override
+	public Player<?> newPlayerController() {
+		return new DummyPlayer();
+	}
+
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
 
-	public String getName() {
-		return this.model.name;
-	}
-	
-	
-	public int getId() {
-		return this.model.id;
-	}
 }

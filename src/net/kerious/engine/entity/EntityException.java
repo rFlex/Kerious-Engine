@@ -9,7 +9,9 @@
 
 package net.kerious.engine.entity;
 
-public class EntityException extends Exception {
+import net.kerious.engine.KeriousException;
+
+public class EntityException extends KeriousException {
 
 	////////////////////////
 	// VARIABLES
