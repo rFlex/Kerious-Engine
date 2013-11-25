@@ -10,7 +10,7 @@
 package net.kerious.engine.play;
 
 import java.io.Closeable;
-import java.io.IOException;
+import java.net.SocketException;
 
 import net.kerious.engine.KeriousEngine;
 import net.kerious.engine.KeriousException;
@@ -27,7 +27,7 @@ import net.kerious.engine.world.event.EventCreator;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.ObjectMap.Entry;
 
-public abstract class Game implements TemporaryUpdatable, Closeable {
+public abstract class Game extends AbstractKeriousProtocolService implements TemporaryUpdatable, Closeable {
 
 	////////////////////////
 	// VARIABLES
@@ -35,7 +35,6 @@ public abstract class Game implements TemporaryUpdatable, Closeable {
 	
 	final protected Console console;
 	final protected KeriousEngine engine;
-	protected AbstractKeriousProtocolService abstractProtocol;
 	private World world;
 	private boolean closed;
 	private boolean worldIsReady;
@@ -44,7 +43,8 @@ public abstract class Game implements TemporaryUpdatable, Closeable {
 	// CONSTRUCTORS
 	////////////////
 	
-	public Game(KeriousEngine engine, Console console) {
+	public Game(KeriousEngine engine, Console console, int port) throws SocketException {
+		super(port);
 		this.console = console;
 		this.engine = engine;
 		
@@ -57,10 +57,7 @@ public abstract class Game implements TemporaryUpdatable, Closeable {
 	
 	@Override
 	public void update(float deltaTime) {
-		if (this.abstractProtocol != null) {
-			this.abstractProtocol.update(deltaTime);
-		}
-		
+		super.update(deltaTime);
 		World world = this.world;
 		if (world != null) {
 			if (!this.worldIsReady) {
@@ -80,13 +77,9 @@ public abstract class Game implements TemporaryUpdatable, Closeable {
 	}
 	
 	@Override
-	public void close() throws IOException {
-		this.closed = true;
+	public void close() {
+		super.close();
 		
-		if (this.abstractProtocol != null) {
-			this.abstractProtocol.close();
-			this.abstractProtocol = null;
-		}
 		this.setWorld(null);
 	}
 	
@@ -185,7 +178,7 @@ public abstract class Game implements TemporaryUpdatable, Closeable {
 				playerCreator = world.getPlayerManager();
 			}
 			
-			KeriousProtocol keriousProtocol = this.abstractProtocol.getProtocol();
+			KeriousProtocol keriousProtocol = this.protocol;
 			keriousProtocol.setEntityModelCreator(entityModelCreator);
 			keriousProtocol.setEventCreator(eventCreator);
 			keriousProtocol.setPlayerCreator(playerCreator);			

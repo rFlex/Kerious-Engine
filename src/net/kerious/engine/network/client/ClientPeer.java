@@ -33,7 +33,7 @@ public class ClientPeer extends KeriousProtocolPeer {
 	
 	private int playerId;
 	private String name;
-	private PeerServerDelegate delegate;
+	private ClientServerDelegate delegate;
 	private boolean readyToReceiveSnapshots;
 	private ObjectSet<Event> pendingEvents;
 
@@ -172,11 +172,11 @@ public class ClientPeer extends KeriousProtocolPeer {
 		this.readyToReceiveSnapshots = readyToReceiveSnapshots;
 	}
 
-	public PeerServerDelegate getDelegate() {
+	public ClientServerDelegate getDelegate() {
 		return delegate;
 	}
 
-	public void setDelegate(PeerServerDelegate delegate) {
+	public void setDelegate(ClientServerDelegate delegate) {
 		this.delegate = delegate;
 	}
 

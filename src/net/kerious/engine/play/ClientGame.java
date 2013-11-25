@@ -9,53 +9,48 @@
 
 package net.kerious.engine.play;
 
+import java.net.InetAddress;
 import java.net.SocketException;
 
 import net.kerious.engine.KeriousEngine;
+import net.kerious.engine.KeriousException;
 import net.kerious.engine.console.Commands;
 import net.kerious.engine.console.SimpleCommand;
 import net.kerious.engine.console.StringConsoleCommand;
 import net.kerious.engine.entity.EntityException;
 import net.kerious.engine.entity.EntityManager;
 import net.kerious.engine.entity.model.EntityModel;
-import net.kerious.engine.network.client.ClientService;
-import net.kerious.engine.network.client.ClientServiceListener;
+import net.kerious.engine.network.client.ServerPeer;
+import net.kerious.engine.network.protocol.ServerPeerListener;
+import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.network.protocol.packet.RequestPacket;
-import net.kerious.engine.player.PlayerModel;
 import net.kerious.engine.player.PlayerManager;
+import net.kerious.engine.player.PlayerModel;
 import net.kerious.engine.world.World;
 import net.kerious.engine.world.event.Event;
 
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
 
-public abstract class ClientGame extends Game implements ClientServiceListener {
+public abstract class ClientGame extends Game implements ServerPeerListener {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 
-	private ClientService client;
 	private StringConsoleCommand nameCommand;
 	private ClientGameListener listener;
 	private CommandPacketCreator commandPacketCreator;
+	private ServerPeer serverPeer;
 	private int myPlayerId;
 	
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 	
-	public ClientGame(KeriousEngine engine) {
-		super(engine, engine.getConsole());
-		
-		try {
-			this.client = new ClientService();
-			this.client.setListener(this);
-			this.abstractProtocol = this.client;
-		} catch (SocketException e) {
-			e.printStackTrace();
-		}
+	public ClientGame(KeriousEngine engine) throws SocketException {
+		super(engine, engine.getConsole(), 0);
 		
 		this.nameCommand = new StringConsoleCommand("name");
 		
@@ -72,50 +67,157 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 	// METHODS
 	////////////////
 	
+	/**
+	 * Create a peer that represents a connection between this client and the server
+	 * @param address
+	 * @param port
+	 * @return
+	 */
+	protected ServerPeer createPeer(InetAddress address, int port) {
+		return new ServerPeer(address, port);
+	}
+	
 	public void connect(String ip, int port) {
-		this.client.connectTo(this.getName(), ip, port);
+		this.disconnect();
+
+		try {
+			ServerPeer peer = this.createPeer(InetAddress.getByName(ip), port);
+			peer.setProtocol(this.getProtocol());
+			peer.setName(this.getName());
+			peer.setListener(this);
+			peer.setGate(this.getGate());
+			
+			this.serverPeer = peer;
+		} catch (Exception e) {
+			if (this.listener != null) {
+				this.listener.onConnectionFailed(this, ip, port, e.getMessage());
+			}
+		}
+		
 		this.console.print("Attempting to connect to " + ip + ":" + port);
 	}
 	
 	public void disconnect() {
-		this.client.disconnect("Disconnected by user");
+		this.disconnect("Disconnected");
+	}
+	
+	public void disconnect(String reason) {
+		if (this.serverPeer != null) {
+			ConnectionPacket connection = this.protocol.createConnectionPacket(ConnectionPacket.ConnectionInterrupted);
+			connection.reason = reason;
+			
+			this.serverPeer.send(connection);
+			this.onDisconnected(this.serverPeer, reason);
+		}
+	}
+	
+	final private void destroyPeer() {
+		if (this.serverPeer != null) {
+			this.serverPeer.setListener(null);
+			this.serverPeer = null;
+		}
 	}
 	
 	@Override
 	public void update(float deltaTime) {
 		super.update(deltaTime);
-		
-		World world = this.getWorld();
-		
-		if (client.isConnected() && world != null) {
+
+		if (this.serverPeer != null) {
+			if (this.serverPeer.hasExpired()) {
+				this.onDisconnected(this.serverPeer, this.serverPeer.getDisconnectReason());
+			} else {
+				this.serverPeer.update(deltaTime);
+			}
+			
 			KeriousPacket packet = null;
 			
-			if (world.isResourcesLoaded() && this.commandPacketCreator != null) {
-				packet = this.commandPacketCreator.generateCommandPacket(this.client.getProtocol());
+			World world = this.getWorldIfReady();
+			if (world != null) {
+				if (this.commandPacketCreator != null) {
+					packet = this.commandPacketCreator.generateCommandPacket(this.protocol);
+				}
 			}
 			
 			if (packet == null) {
-				packet = this.client.getProtocol().createPacket(KeriousPacket.TypeKeepAlive);
+				packet = this.protocol.createKeepAlivePacket();
 			}
 			
-			client.sendToServer(packet);
+			this.serverPeer.send(packet);
 			
 			packet.release();
 		}
+		
+	}
+	
+	@Override
+	public void onConnected(ServerPeer peer, int playerId) {
+		this.console.print("Connected to " + peer.getIP() + ":" + peer.getPort() + " (PlayerID:" + playerId + ")");
+		this.myPlayerId = playerId;
+		
+		if (this.listener != null) {
+			this.listener.onConnected(this, peer.getIP(), peer.getPort());
+		}
+	}
+	
+	@Override
+	public void onConnectionFailed(ServerPeer peer, String reason) {
+		this.destroyPeer();
+		
+		this.console.printError("Failed to connect to " + peer.getIP() + ":" + peer.getPort() + "(" + reason + ")");
+		if (this.listener != null) {
+			this.listener.onConnectionFailed(this, peer.getIP(), peer.getPort(), reason);
+		}
+	}
+	
+
+	@Override
+	public void onDisconnected(ServerPeer peer, String reason) {
+		this.destroyPeer();
+		
+		this.console.print("Disconnected from " + peer.getIP() + ":" + peer.getPort() + " (" + reason + ")");
+		
+		this.myPlayerId = 0;
+		// Temporary implementation
+		this.setWorld(null);
+
+		if (this.listener != null) {
+			this.listener.onDisconnected(this, peer.getIP(), peer.getPort(), reason);
+		}
+	}
+	
+	public void sendToServer(KeriousPacket packet) {
+		if (this.serverPeer == null) {
+			throw new KeriousException("The client is currently not connected to any server");
+		}
+		
+		this.serverPeer.send(packet);
+	}
+	
+	@Override
+	public void onReceived(InetAddress address, int port, Object packet) {
+		KeriousPacket keriousPacket = (KeriousPacket)packet;
+		
+		if (this.serverPeer != null) {
+			if (this.serverPeer.getAddress().equals(address) && this.serverPeer.getPort() == port) {
+				this.serverPeer.handlePacketReceived(keriousPacket);
+			}
+		}
+		
+		keriousPacket.release();
 	}
 	
 	@Override
 	protected void worldFailedLoad(String reason) {
 		super.worldFailedLoad(reason);
 		
-		client.disconnect("Unable to load needed resources for the world: " + reason);
+		this.disconnect("Unable to load needed resources for the world: " + reason);
 	}
 	
 	@Override
 	protected void worldIsReady() {
 		this.commandPacketCreator = this.getCommandPacketCreator(this, this.getWorld());
-		RequestPacket beginReceiveSnapshots = this.client.getProtocol().createRequestPacket(RequestPacket.RequestBeginReceiveSnapshots);
-		this.client.sendToServer(beginReceiveSnapshots);
+		RequestPacket beginReceiveSnapshots = this.protocol.createRequestPacket(RequestPacket.RequestBeginReceiveSnapshots);
+		this.sendToServer(beginReceiveSnapshots);
 		beginReceiveSnapshots.release();
 	}
 	
@@ -130,7 +232,7 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 	}
 	
 	@Override
-	public void onReceivedWorldInformations(ClientService clientServer, ObjectMap<String, String> informations, boolean shouldLoadWorld) {
+	public void onReceivedWorldInformations(ServerPeer peer, ObjectMap<String, String> informations, boolean shouldLoadWorld) {
 		if (shouldLoadWorld) {
 			this.loadWorld(informations);
 			
@@ -139,47 +241,14 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 			}
 		}
 	}
-
-	@Override
-	public void onDisconnected(ClientService clientServer, String ip, int port, String reason) {
-		this.console.print("Disconnected from " + ip + ":" + port + " (" + reason + ")");
-		
-		this.myPlayerId = 0;
-		// Temporary implementation
-		this.setWorld(null);
-		
-		if (this.listener != null) {
-			this.listener.onDisconnected(this, ip, port, reason);
-		}
-	}
-
-	@Override
-	public void onConnected(ClientService clientServer, String ip, int port, int playerId) {
-		this.console.print("Connected to " + ip + ":" + port + " (PlayerID:" + playerId + ")");
-
-		this.myPlayerId = playerId;
-		
-		if (this.listener != null) {
-			this.listener.onConnected(this, ip, port);
-		}
-	}
-
-	@Override
-	public void onConnectionFailed(ClientService clientServer, String ip, int port, String reason) {
-		this.console.printError("Failed to connect to " + ip + ":" + port + "(" + reason + ")");
-		
-		if (this.listener != null) {
-			this.listener.onConnectionFailed(this, ip, port, reason);
-		}
-	}
 	
 	@Override
-	public void onReceivedInformation(ClientService clientService, String informationType, String message) {
-		this.console.processCommand(Commands.RemoteInformation, informationType, message);
+	public void onReceivedInformation(ServerPeer peer, String informationType, String information) {
+		this.console.processCommand(Commands.RemoteInformation, informationType, information);
 	}
 
 	@Override
-	public void onReceivedSnapshot(ClientService clientService, Array<PlayerModel> players, Array<EntityModel> entityModels, Array<Event> events) {
+	public void onReceivedSnapshot(ServerPeer peer, Array<PlayerModel> players, Array<EntityModel> entityModels, Array<Event> events) {
 		World world = this.getWorld();
 		
 		if (world != null && world.isResourcesLoaded()) {
@@ -242,5 +311,7 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 		return myPlayerId;
 	}
 
-
+	public boolean isConnected() {
+		return this.serverPeer != null;
+	}
 }

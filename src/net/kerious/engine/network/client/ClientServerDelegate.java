@@ -11,7 +11,7 @@ package net.kerious.engine.network.client;
 
 import com.badlogic.gdx.utils.ObjectMap;
 
-public interface PeerServerDelegate {
+public interface ClientServerDelegate {
 	
 	void fillWorldInformations(ClientPeer peer, ObjectMap<String, String> informations);
 	void updateWorldWithCommands(ClientPeer peer, float directionAngle, float directionStrength, long actions);
