@@ -103,7 +103,9 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 			final ClientPeer clientPeer = peersArray[i];
 			
 			clientPeer.setReadyToReceiveSnapshots(false);
-			clientPeer.send(this.server.getProtocol().createInformationPacket(InformationPacket.InformationServerFailedLoading, reason));
+			InformationPacket serverFailedLoadingPacket = this.server.getProtocol().createInformationPacket(InformationPacket.InformationServerFailedLoading, reason);
+			clientPeer.send(serverFailedLoadingPacket);
+			serverFailedLoadingPacket.release();
 		}
 	}
 	
@@ -117,7 +119,9 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 		for (int i = 0, length = peers.size; i < length; i++) {
 			final ClientPeer clientPeer = peersArray[i];
 			
-			clientPeer.send(this.server.getProtocol().createRequestPacket(RequestPacket.RequestLoadWorld));
+			RequestPacket loadWorldRequest = this.server.getProtocol().createRequestPacket(RequestPacket.RequestLoadWorld);
+			clientPeer.send(loadWorldRequest);
+			loadWorldRequest.release();
 		}
 	}
 	
@@ -177,6 +181,7 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 			
 			RequestPacket packet = this.server.getProtocol().createRequestPacket(RequestPacket.RequestLoadWorld);
 			client.send(packet);
+			packet.release();
 		}
 	}
 
@@ -202,7 +207,10 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 			final ClientPeer clientPeer = peersArray[i];
 			
 			clientPeer.setReadyToReceiveSnapshots(false);
-			clientPeer.send(this.server.getProtocol().createInformationPacket(InformationPacket.InformationServerIsLoading, null));
+			
+			InformationPacket serverIsLoadingPacket = this.server.getProtocol().createInformationPacket(InformationPacket.InformationServerIsLoading, null);
+			clientPeer.send(serverIsLoadingPacket);
+			serverIsLoadingPacket.release();
 		}
 	}
 

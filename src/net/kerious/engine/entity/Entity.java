@@ -266,6 +266,15 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 		}
 	}
 	
+	public void translate(float offsetX, float offsetY) {
+		this.model.x += offsetX;
+		this.model.y += offsetY;
+		
+		if (this.worldRenderingEnabled) {
+			this.updateView();
+		}
+	}
+	
 	public void setSize(float width, float height) {
 		this.model.width = width;
 		this.model.height = height;

@@ -162,6 +162,7 @@ public class ServerService extends AbstractKeriousProtocolService implements Pee
 					ConnectionPacket responseConnectionPacket = this.protocol.createConnectionPacket(ConnectionPacket.ConnectionInterrupted);
 					responseConnectionPacket.reason = this.refuseConnectionReasonVH.value();
 					this.gate.send(responseConnectionPacket, address, port);
+					responseConnectionPacket.release();
 				}
 				
 				break;

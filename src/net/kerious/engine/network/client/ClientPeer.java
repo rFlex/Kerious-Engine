@@ -65,7 +65,9 @@ public class ClientPeer extends KeriousProtocolPeer {
 			switch (connectionPacket.connectionRequest) {
 			case ConnectionPacket.ConnectionAsk:
 				// Send the accepted packet
-				this.send(this.protocol.createConnectionPacket(ConnectionPacket.ConnectionAccepted));
+				ConnectionPacket acceptedConnectionPacket = this.protocol.createConnectionPacket(ConnectionPacket.ConnectionAccepted);
+				this.send(acceptedConnectionPacket);
+				acceptedConnectionPacket.release();
 				break;
 			case ConnectionPacket.ConnectionInterrupted:
 				this.setDisconnectReason(connectionPacket.reason);
@@ -90,6 +92,7 @@ public class ClientPeer extends KeriousProtocolPeer {
 					this.delegate.fillWorldInformations(this, worldInformationsPacket.informations);
 				}
 				this.send(worldInformationsPacket);
+				worldInformationsPacket.release();
 				break;
 			default:
 				return false;
@@ -132,6 +135,8 @@ public class ClientPeer extends KeriousProtocolPeer {
 		}
 		
 		this.send(snapshotPacket);
+		
+		snapshotPacket.release();
 	}
 	
 	protected void packetReceived(KeriousPacket packet) {

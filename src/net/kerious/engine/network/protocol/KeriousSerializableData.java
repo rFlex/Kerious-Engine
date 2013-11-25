@@ -51,6 +51,12 @@ public abstract class KeriousSerializableData extends PoolableImpl {
 		return sb.toString();
 	}
 	
+	@Override
+	protected void finalize() throws Throwable {
+		super.finalize();
+		System.out.println("Warning: Leaking " + this.getClass().getSimpleName() + "@" + this.hashCode());
+	}
+
 	/**
 	 * Utility method to put a string
 	 * @param str

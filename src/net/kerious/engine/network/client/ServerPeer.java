@@ -123,6 +123,7 @@ public class ServerPeer extends KeriousProtocolPeer {
 					this.shouldLoadWorld = true;
 					RequestPacket requestInfo = this.protocol.createRequestPacket(RequestPacket.RequestReceiveWorldInformations);
 					this.send(requestInfo);
+					requestInfo.release();
 				}
 				break;
 			}

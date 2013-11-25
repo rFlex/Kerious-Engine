@@ -55,40 +55,17 @@ public class KeriousProtocol extends FactoryManager implements INetworkProtocol 
 	////////////////
 	
 	private void initPackets() {
-		this.registerPacketType(KeriousPacket.TypeSnapshot, new Pool<SnapshotPacket>() {
-			protected SnapshotPacket instantiate() {
-				return new SnapshotPacket();
-			}
-		});
-		
-		this.registerPacketType(KeriousPacket.TypeConnection, new Pool<ConnectionPacket>() {
-			protected ConnectionPacket instantiate() {
-				return new ConnectionPacket();
-			}
-		});
-		
-		this.registerPacketType(KeriousPacket.TypeKeepAlive, new Pool<KeepAlivePacket>() {
-			protected KeepAlivePacket instantiate() {
-				return new KeepAlivePacket();
-			}
-		});
-		this.registerPacketType(KeriousPacket.TypeRequest, new Pool<RequestPacket>() {
-			protected RequestPacket instantiate() {
-				return new RequestPacket();
-			}
-		});
-		this.registerPacketType(KeriousPacket.TypeWorldInformations, new Pool<WorldInformationsPacket>() {
-			protected WorldInformationsPacket instantiate() {
-				return new WorldInformationsPacket();
-			}
-		});
-		this.registerPacketType(KeriousPacket.TypeInformation, new Pool<InformationPacket>() {
-			protected InformationPacket instantiate() {
-				return new InformationPacket();
-			}			
-		});
-		
-		this.registerPacketType(KeriousPacket.TypeBasicCommand, new ReflectionPool<BasicCommandPacket>(BasicCommandPacket.class));
+		this.registerPacketType(KeriousPacket.TypeSnapshot, SnapshotPacket.class);
+		this.registerPacketType(KeriousPacket.TypeConnection, ConnectionPacket.class);
+		this.registerPacketType(KeriousPacket.TypeKeepAlive, KeepAlivePacket.class);
+		this.registerPacketType(KeriousPacket.TypeRequest, RequestPacket.class);
+		this.registerPacketType(KeriousPacket.TypeWorldInformations, WorldInformationsPacket.class);
+		this.registerPacketType(KeriousPacket.TypeInformation, InformationPacket.class);
+		this.registerPacketType(KeriousPacket.TypeBasicCommand, BasicCommandPacket.class);
+	}
+	
+	public <T extends KeriousPacket> void registerPacketType(byte packetType, Class<T> packetClass) {
+		this.registerPacketType(packetType, new ReflectionPool<T>(packetClass));
 	}
 	
 	public <T extends KeriousPacket> void registerPacketType(byte packetType, Pool<T> packetPool) {

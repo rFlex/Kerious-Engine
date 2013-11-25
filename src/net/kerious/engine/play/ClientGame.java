@@ -99,6 +99,8 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 			}
 			
 			client.sendToServer(packet);
+			
+			packet.release();
 		}
 	}
 	
@@ -112,7 +114,9 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 	@Override
 	protected void worldIsReady() {
 		this.commandPacketCreator = this.getCommandPacketCreator(this, this.getWorld());
-		this.client.sendToServer(this.client.getProtocol().createRequestPacket(RequestPacket.RequestBeginReceiveSnapshots));
+		RequestPacket beginReceiveSnapshots = this.client.getProtocol().createRequestPacket(RequestPacket.RequestBeginReceiveSnapshots);
+		this.client.sendToServer(beginReceiveSnapshots);
+		beginReceiveSnapshots.release();
 	}
 	
 	@Override
@@ -206,7 +210,8 @@ public abstract class ClientGame extends Game implements ClientServiceListener {
 	}
 	
 	/**
-	 * Return the CommandPacketCreator 
+	 * Return the CommandPacketCreator
+	 * If null is returned, the client will just send KeepAlivePacket to prevent the disconnection
 	 * @param game
 	 * @param world
 	 * @return
