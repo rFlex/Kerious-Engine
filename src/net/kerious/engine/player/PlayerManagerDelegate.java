@@ -12,6 +12,6 @@ public interface PlayerManagerDelegate {
 	 * Instantiate a new player controller
 	 * @return
 	 */
-	Player<?> newPlayerController();
+	Player newPlayerController();
 	
 }

@@ -19,7 +19,9 @@ import net.kerious.engine.entity.Entity;
 import net.kerious.engine.entity.EntityException;
 import net.kerious.engine.entity.EntityManager;
 import net.kerious.engine.entity.EntityManagerListener;
+import net.kerious.engine.player.Player;
 import net.kerious.engine.player.PlayerManager;
+import net.kerious.engine.player.PlayerManagerListener;
 import net.kerious.engine.resource.ResourceBundle;
 import net.kerious.engine.resource.ResourceBundleListener;
 import net.kerious.engine.resource.ResourceManager;
@@ -30,8 +32,7 @@ import net.kerious.engine.world.event.EventManager;
 
 import com.badlogic.gdx.utils.SnapshotArray;
 
-@SuppressWarnings("rawtypes")
-public abstract class World extends ViewController implements TemporaryUpdatable, EntityManagerListener, ResourceBundleListener, Closeable {
+public abstract class World extends ViewController implements TemporaryUpdatable, EntityManagerListener, PlayerManagerListener, ResourceBundleListener, Closeable {
 
 	////////////////////////
 	// VARIABLES
@@ -50,6 +51,7 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	private boolean resourcesLoaded;
 	private boolean loadingResources;
 	private boolean failedLoadingResources;
+	private float time;
 	private String loadingFailedReason;
 
 	////////////////////////
@@ -67,6 +69,8 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		this.resourceBundle = new ResourceBundle();
 		
 		this.entityManager.setListener(this);
+		this.playerManager.setListener(this);
+		
 		this.resourcesLoaded = true;
 		this.setRenderingEnabled(true);
 		this.setHasAuthority(true);
@@ -98,6 +102,10 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	
 	@Override
 	public void update(float deltaTime) {
+		this.time += deltaTime;
+		
+		this.playerManager.update(deltaTime);
+		
 		Entity[] entities = this.entities.begin();
 		for (int i = 0, length = this.entities.size; i < length; i++) {
 			Entity entity = entities[i];
@@ -116,25 +124,29 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		return this.entityManager.createEntity(entityType);
 	}
 	
-	private void addEntity(Entity entity) {
-		if (entity == null) {
-			throw new IllegalArgumentException("entity may not be null");
-		}
-		
+	@Override
+	public void onEntityCreated(Entity entity) {
 		this.entities.add(entity);
 		
 		entity.setWorld(this);
 		entity.addedToWorld();
-	}
-	
-	@Override
-	public void onEntityCreated(Entity entity) {
-		this.addEntity(entity);
+		entity.ready();
 	}
 
 	@Override
 	public void onEntityDestroyed(int entityId) {
 		
+	}
+	
+	@Override
+	public void onPlayerConnected(Player player) {
+		player.setWorld(this);
+		player.ready();
+	}
+	
+	@Override
+	public void onPlayerDisconnected(Player player, String reason) {
+		player.setWorld(null);
 	}
 	
 	/**
@@ -273,5 +285,8 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	public String getFailedLoadingResourcesReason() {
 		return loadingFailedReason;
 	}
-
+	
+	public float getTime() {
+		return this.time;
+	}
 }

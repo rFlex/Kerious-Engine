@@ -18,7 +18,7 @@ import net.kerious.engine.KeriousException;
 import net.kerious.engine.entity.EntityException;
 import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.entity.model.EntityModelCreator;
-import net.kerious.engine.network.protocol.packet.BasicCommandPacket;
+import net.kerious.engine.network.protocol.packet.CommandPacket;
 import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.InformationPacket;
 import net.kerious.engine.network.protocol.packet.KeepAlivePacket;
@@ -61,7 +61,7 @@ public class KeriousProtocol extends FactoryManager implements INetworkProtocol 
 		this.registerPacketType(KeriousPacket.TypeRequest, RequestPacket.class);
 		this.registerPacketType(KeriousPacket.TypeWorldInformations, WorldInformationsPacket.class);
 		this.registerPacketType(KeriousPacket.TypeInformation, InformationPacket.class);
-		this.registerPacketType(KeriousPacket.TypeBasicCommand, BasicCommandPacket.class);
+		this.registerPacketType(KeriousPacket.TypeCommand, CommandPacket.class);
 	}
 	
 	public <T extends KeriousPacket> void registerPacketType(byte packetType, Class<T> packetClass) {
@@ -113,6 +113,16 @@ public class KeriousProtocol extends FactoryManager implements INetworkProtocol 
 		
 		packet.information = information;
 		packet.informationString = informationString;
+		
+		return packet;
+	}
+	
+	final public CommandPacket createCommandPacket(float directionAngle, float directionStrength, long actionsBitfield) {
+		CommandPacket packet = (CommandPacket)this.createPacket(KeriousPacket.TypeCommand);
+		
+		packet.directionAngle = directionAngle;
+		packet.directionStrength = directionStrength;
+		packet.actionsBitfield = actionsBitfield;
 		
 		return packet;
 	}

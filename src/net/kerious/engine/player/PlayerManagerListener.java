@@ -9,7 +9,6 @@
 
 package net.kerious.engine.player;
 
-@SuppressWarnings("rawtypes")
 public interface PlayerManagerListener {
 	
 	void onPlayerConnected(Player player);

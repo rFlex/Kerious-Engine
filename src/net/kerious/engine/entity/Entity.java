@@ -10,24 +10,26 @@
 package net.kerious.engine.entity;
 
 import net.kerious.engine.entity.model.EntityModel;
+import net.kerious.engine.player.Player;
 import net.kerious.engine.skin.SkinException;
 import net.kerious.engine.utils.Controller;
 import net.kerious.engine.utils.TemporaryUpdatable;
 import net.kerious.engine.view.View;
 import net.kerious.engine.world.World;
 
-@SuppressWarnings("rawtypes")
-public abstract class Entity<EntityModelType extends EntityModel, ViewType extends View>
-								extends Controller<EntityModelType> implements TemporaryUpdatable {
+public abstract class Entity extends Controller<EntityModel> implements TemporaryUpdatable {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
 	
+	private Player player;
 	private Entity parentEntity;
 	private EntityManager entityManager;
 	private World world;
-	private ViewType view;
+	private View view;
+	private float velocityX;
+	private float velocityY;
 	private int currentSkinId;
 	private boolean shouldBeRemoved;
 	private boolean destroyWhenRemoved;
@@ -38,6 +40,7 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 	////////////////
 	
 	public Entity() {
+		
 	}
 
 	////////////////////////
@@ -48,12 +51,12 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 	 * Updated every frame. This is where you should update the entity logic
 	 * @param deltaTime
 	 */
-	public abstract void update(float deltaTime);
-	
-	/**
-	 * Called when the Entity has just been created and a model has been set for the first time
-	 */
-	public abstract void initialize();
+	public void update(float deltaTime) {
+		this.model.x += this.velocityX;
+		this.model.y += this.velocityY;
+		
+		this.updateView();
+	}
 	
 	/**
 	 * This is where the Entity decides to add its view to the world. The basic implementation adds
@@ -71,7 +74,7 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 			if (parentView != null) {
 				parentView.addView(view);
 			} else {
-				world.getEngine().getConsole().print("ERROR: Attempted to add a view from an Entity to a parent entity that does not have a view");
+				world.getEngine().getConsole().print("Attempted to add a view from an Entity to a parent entity that does not have a view");
 			}
 		} else {
 			View worldView = world.getView();
@@ -79,7 +82,7 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 			if (worldView != null) {
 				worldView.addView(view);
 			} else {
-				world.getEngine().getConsole().print("ERROR: Attempted to add a view from an Entity to a world that doesn't have a view");
+				world.getEngine().getConsole().printError("Attempted to add a view from an Entity to a world that doesn't have a view");
 			}
 		}
 	}
@@ -90,12 +93,10 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 	public void updateView() {
 		if (view != null) {
 			view.setFrame(model.x, model.y, model.width, model.height);
-			view.setPosition(model.x, model.y);			
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
-	final private ViewType createViewFromSkinId(int skinId) {
+	final private View createViewFromSkinId(int skinId) {
 		if (skinId == 0) {
 			return null;
 		}
@@ -103,7 +104,7 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 		try {
 			View view = this.world.getSkinManager().createView(skinId);
 			try {
-				return (ViewType)view;
+				return (View)view;
 			} catch (ClassCastException e2) {
 				throw new SkinException("Mismatching entity view types");
 			}
@@ -180,19 +181,24 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 	}
 	
 	/**
+	 * Changed when the owner player changed
+	 */
+	protected void playerChanged() {
+		
+	}
+	
+
+	public void addedToWorld() {
+		this.updateSkin();
+	}
+	
+	/**
 	 * Called when the Entity has been removed from the world
 	 */
 	protected void removedFromWorld() {
 		if (this.destroyWhenRemoved) {
 			this.destroyFromEntityManager();
 		}
-	}
-	
-	/**
-	 * Called when the Entity has been added to the world
-	 */
-	public void addedToWorld() {
-		this.updateSkin();
 	}
 	
 	/**
@@ -206,6 +212,8 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 	 * Destroy the entity and release it. If the entity is in a world, it will be removed from it first
 	 */
 	public void destroy() {
+		this.setPlayer(null);
+		
 		if (this.world != null) {
 			this.destroyWhenRemoved = true;
 			this.removeFromWorld();
@@ -228,6 +236,7 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 		this.destroyWhenRemoved = false;
 		this.shouldBeRemoved = false;
 		this.setView(null);
+		this.setPlayer(null);
 	}
 	
 	/**
@@ -246,6 +255,14 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 		} else {
 			System.err.println("ERROR: Attempted to set a skin to an entity which is not in a world");
 		}
+	}
+	
+	/**
+	 * Stop the current moving
+	 * Equivalent to setVelocityXY(0)
+	 */
+	public void stopMoving() {
+		this.setVelocityXY(0);
 	}
 
 	////////////////////////
@@ -284,8 +301,12 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 		}
 	}
 	
-	public int getEntityId() {
+	public int getId() {
 		return this.model.id;
+	}
+	
+	public byte getType() {
+		return this.model.type;
 	}
 	
 	public void setFrame(float x, float y, float width, float height) {
@@ -299,11 +320,11 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 		}
 	}
 
-	public ViewType getView() {
+	public View getView() {
 		return view;
 	}
 
-	final private void setView(ViewType view) {
+	final private void setView(View view) {
 		if (this.view != view) {
 			if (this.view != null) {
 				this.view.removeFromParentView();
@@ -355,10 +376,57 @@ public abstract class Entity<EntityModelType extends EntityModel, ViewType exten
 	public void setParentEntity(Entity parentEntity) {
 		if (this.parentEntity != parentEntity) {
 			this.parentEntity = parentEntity;
-			this.model.parentId = parentEntity != null ? ((EntityModel)parentEntity.model).parentId : 0;
+			this.model.parentId = parentEntity != null ? (parentEntity.model).parentId : 0;
 			
 			this.parentChanged();
 		}
 	}
+
+	public Player getPlayer() {
+		return player;
+	}
+
+	public void setPlayer(Player player) {
+		if (this.player != player) {
+			Player oldPlayer = this.player;
+			
+			this.player = player;
+			this.model.playerId = player.getId();
+			
+			if (oldPlayer != null) {
+				oldPlayer.lostEntityOwnership(this);
+			}
+			if (player != null) {
+				player.gainedEntityOwnership(this);
+			}
+			
+			this.playerChanged();
+		}
+	}
+
+	public float getVelocityX() {
+		return velocityX;
+	}
+
+	public void setVelocityX(float velocityX) {
+		this.velocityX = velocityX;
+	}
+
+	public float getVelocityY() {
+		return velocityY;
+	}
+
+	public void setVelocityY(float velocityY) {
+		this.velocityY = velocityY;
+	}
 	
+	public void setVelocityXY(float velocity) {
+		this.velocityX = velocity;
+		this.velocityY = velocity;
+	}
+	
+	public void setVelocity(float velocityX, float velocityY) {
+		this.velocityX = velocityX;
+		this.velocityY = velocityY;
+	}
 }

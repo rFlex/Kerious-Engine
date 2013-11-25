@@ -25,7 +25,7 @@ public class DummyPlayerManagerDelegate implements PlayerManagerDelegate {
 	}
 
 	@Override
-	public Player<?> newPlayerController() {
+	public Player newPlayerController() {
 		return new DummyPlayer();
 	}
 

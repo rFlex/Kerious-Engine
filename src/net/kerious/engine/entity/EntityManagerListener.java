@@ -9,7 +9,6 @@
 
 package net.kerious.engine.entity;
 
-@SuppressWarnings("rawtypes")
 public interface EntityManagerListener {
 	
 	void onEntityCreated(Entity entity);

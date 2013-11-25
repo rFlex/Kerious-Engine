@@ -15,16 +15,20 @@ import me.corsin.javatools.misc.ValueHolder;
 import net.kerious.engine.KeriousEngine;
 import net.kerious.engine.console.Console;
 import net.kerious.engine.console.IntegerConsoleCommand;
+import net.kerious.engine.entity.Entity;
 import net.kerious.engine.network.client.ClientPeer;
 import net.kerious.engine.network.client.ServerService;
 import net.kerious.engine.network.client.ServerServiceDelegate;
 import net.kerious.engine.network.client.ServerServiceListener;
 import net.kerious.engine.network.protocol.packet.InformationPacket;
 import net.kerious.engine.network.protocol.packet.RequestPacket;
+import net.kerious.engine.player.Player;
 import net.kerious.engine.world.World;
+import net.kerious.engine.world.event.EntityCreatedEvent;
 import net.kerious.engine.world.event.Event;
 import net.kerious.engine.world.event.EventManager;
 import net.kerious.engine.world.event.EventManagerListener;
+import net.kerious.engine.world.event.Events;
 
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
@@ -119,9 +123,7 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 		for (int i = 0, length = peers.size; i < length; i++) {
 			final ClientPeer clientPeer = peersArray[i];
 			
-			RequestPacket loadWorldRequest = this.server.getProtocol().createRequestPacket(RequestPacket.RequestLoadWorld);
-			clientPeer.send(loadWorldRequest);
-			loadWorldRequest.release();
+			this.addPlayer(clientPeer);
 		}
 	}
 	
@@ -170,10 +172,8 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 			ObjectMap<String, String> informations) {
 		this.fillWorldInformations(informations);
 	}
-
-	@Override
-	public void onPeerConnected(ServerService server, ClientPeer client) {
-		this.console.print(client + " connected");
+	
+	final private void addPlayer(ClientPeer client) {
 		World world = this.getWorld();
 		
 		if (world != null && world.isResourcesLoaded()) {
@@ -184,6 +184,12 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 			packet.release();
 		}
 	}
+	
+	@Override
+	public void onPeerConnected(ServerService server, ClientPeer client) {
+		this.console.print(client + " connected");
+		this.addPlayer(client);
+	}
 
 	@Override
 	public void onPeerDisconnected(ServerService server,
@@ -193,6 +199,24 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 		
 		if (world != null) {
 			world.getPlayerManager().removePlayer(client.getPlayerId(), client.getName());
+		}
+	}
+	
+	@Override
+	public void onPeerBecameReadyToReceiveSnapshots(ServerService server, ClientPeer client) {
+		World world = this.getWorldIfReady();
+		
+		if (world != null) {
+			for (Entity entity : world.getEntityManager().getEntites()) {
+				EntityCreatedEvent entityCreatedEvent = (EntityCreatedEvent)world.getEventManager().createEvent(Events.EntityCreated);
+				
+				entityCreatedEvent.entityId = entity.getId();
+				entityCreatedEvent.entityType = entity.getType();
+				
+				client.sendEvent(entityCreatedEvent);
+				
+				entityCreatedEvent.release();
+			}
 		}
 	}
 
@@ -215,11 +239,14 @@ public abstract class HostedGame extends Game implements ServerServiceDelegate, 
 	}
 
 	@Override
-	public void updateWorldWithCommands(ServerService server, int playerId, float directionAngle, float directionStrength, int actions) {
+	public void updateWorldWithCommands(ServerService server, int playerId, float directionAngle, float directionStrength, long actions) {
 		World world = this.getWorldIfReady();
 		
 		if (world != null) {
-			
+			Player player = world.getPlayerManager().getPlayer(playerId);
+			if (player != null) {
+				player.handleCommand(directionAngle, directionStrength, actions);
+			}
 		}
 	}
 	

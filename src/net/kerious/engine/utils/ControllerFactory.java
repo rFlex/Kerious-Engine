@@ -96,8 +96,6 @@ public abstract class ControllerFactory<ControllerType extends Controller<ModelT
 		
 		controller.setModel(model);
 		
-		controller.initialize();
-		
 		return controller;
 	}
 	

@@ -23,6 +23,7 @@ public class EntityModel extends KeriousSerializableData {
 	public byte type;
 	public int id;
 	public int parentId;
+	public int playerId;
 	public short skinId;
 	public float x;
 	public float y;
@@ -47,6 +48,7 @@ public class EntityModel extends KeriousSerializableData {
 		this.type = 0;
 		this.id = 0;
 		this.parentId = 0;
+		this.playerId = 0;
 		this.skinId = 0;
 		this.x = 0;
 		this.y = 0;
@@ -58,6 +60,7 @@ public class EntityModel extends KeriousSerializableData {
 	public void deserialize(KeriousProtocol protocol, ByteBuffer buffer) {
 		this.id = buffer.getInt();
 		this.parentId = buffer.getInt();
+		this.playerId = buffer.getInt();
 		this.skinId = buffer.getShort();
 		this.x = buffer.getFloat();
 		this.y = buffer.getFloat();
@@ -69,6 +72,7 @@ public class EntityModel extends KeriousSerializableData {
 	public void serialize(KeriousProtocol protocol, ByteBuffer buffer) {
 		buffer.putInt(this.id);
 		buffer.putInt(this.parentId);
+		buffer.putInt(this.playerId);
 		buffer.putShort(this.skinId);
 		buffer.putFloat(this.x);
 		buffer.putFloat(this.y);

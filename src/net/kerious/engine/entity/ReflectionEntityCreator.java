@@ -11,7 +11,7 @@ package net.kerious.engine.entity;
 
 import net.kerious.engine.entity.model.EntityModel;
 
-public class ReflectionEntityCreator<EntityType extends Entity<EntityModelType, ?>, EntityModelType extends EntityModel> extends EntityCreator<EntityType, EntityModelType> {
+public class ReflectionEntityCreator<EntityType extends Entity, EntityModelType extends EntityModel> extends EntityCreator<EntityType, EntityModelType> {
 
 	////////////////////////
 	// VARIABLES

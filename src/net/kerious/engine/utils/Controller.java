@@ -28,9 +28,12 @@ public abstract class Controller<T extends KeriousSerializableData> extends Pool
 	////////////////////////
 	// METHODS
 	////////////////
-
-	abstract public void initialize();
 	
+	/**
+	 * Called when the Controller's is ready to use
+	 */
+	abstract public void ready();
+
 	/**
 	 * Called when the Controller's model has been changed
 	 */

@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 
 import net.kerious.engine.network.protocol.KeriousProtocol;
 
-public class BasicCommandPacket extends KeriousPacket {
+public class CommandPacket extends KeriousPacket {
 	
 	////////////////////////
 	// VARIABLES
@@ -20,14 +20,14 @@ public class BasicCommandPacket extends KeriousPacket {
 	 * the bit location in the bitfield. We say that the action is active
 	 * if the bit is at 1.
 	 */
-	public int actionsBitfield;
+	public long actionsBitfield;
 
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 
-	public BasicCommandPacket() {
-		super(TypeBasicCommand);
+	public CommandPacket() {
+		super(TypeCommand);
 	}
 
 	////////////////////////
@@ -40,7 +40,7 @@ public class BasicCommandPacket extends KeriousPacket {
 		
 		this.directionAngle = buffer.getFloat();
 		this.directionStrength = buffer.getFloat();
-		this.actionsBitfield = buffer.getInt();
+		this.actionsBitfield = buffer.getLong();
 	}
 	
 	@Override
@@ -49,7 +49,7 @@ public class BasicCommandPacket extends KeriousPacket {
 		
 		buffer.putFloat(this.directionAngle);
 		buffer.putFloat(this.directionStrength);
-		buffer.putInt(this.actionsBitfield);
+		buffer.putLong(this.actionsBitfield);
 	}
 	
 	@Override

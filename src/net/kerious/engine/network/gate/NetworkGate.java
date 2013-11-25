@@ -67,7 +67,7 @@ public abstract class NetworkGate implements Closeable {
 			public void run() {
 				beginRead();
 			}
-		});
+		}, this.getClass().getSimpleName());
 		this.maxPacketSize = 65536;
 	}
 

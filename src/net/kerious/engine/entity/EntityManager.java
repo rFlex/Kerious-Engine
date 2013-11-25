@@ -130,7 +130,11 @@ public class EntityManager implements EntityModelCreator, EventListenerRegistere
 		EntityModel entityModel = entityCreator.createEntityModel();
 		entityModel.id = entityId;
 		
-		return this.createEntity(entityCreator, entityModel);
+		Entity entity = this.createEntity(entityCreator, entityModel);
+		
+		entityModel.release();
+		
+		return entity;
 	}
 	
 	public void destroyEntity(int entityId) {

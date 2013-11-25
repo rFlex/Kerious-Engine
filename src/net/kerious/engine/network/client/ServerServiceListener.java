@@ -13,5 +13,6 @@ public interface ServerServiceListener {
 
 	void onPeerConnected(ServerService server, ClientPeer client);
 	void onPeerDisconnected(ServerService server, ClientPeer client);
+	void onPeerBecameReadyToReceiveSnapshots(ServerService server, ClientPeer client);
 
 }

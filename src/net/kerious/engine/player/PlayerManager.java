@@ -20,9 +20,9 @@ import net.kerious.engine.world.event.PlayerJoinedEvent;
 import net.kerious.engine.world.event.PlayerLeftEvent;
 
 import com.badlogic.gdx.utils.IntMap;
+import com.badlogic.gdx.utils.SnapshotArray;
 
-@SuppressWarnings("rawtypes")
-public class PlayerManager extends ControllerFactory<Player<PlayerModel>, PlayerModel>
+public class PlayerManager extends ControllerFactory<Player, PlayerModel>
 							implements PlayerModelCreator, EventListenerRegisterer {
 
 	////////////////////////
@@ -30,6 +30,7 @@ public class PlayerManager extends ControllerFactory<Player<PlayerModel>, Player
 	////////////////
 	
 	final private IntMap<Player> players;
+	final private SnapshotArray<Player> playersAsArray;
 	private PlayerManagerListener listener;
 	private PlayerManagerDelegate delegate;
 	private EventManager eventManager;
@@ -40,6 +41,7 @@ public class PlayerManager extends ControllerFactory<Player<PlayerModel>, Player
 	
 	public PlayerManager() {
 		this.players = new IntMap<Player>();
+		this.playersAsArray = new SnapshotArray<Player>(true, 32, Player.class);
 		
 		this.setDelegate(null);
 	}
@@ -47,6 +49,15 @@ public class PlayerManager extends ControllerFactory<Player<PlayerModel>, Player
 	////////////////////////
 	// METHODS
 	////////////////
+	
+	public void update(float deltaTime) {
+		Player[] players = this.playersAsArray.begin();
+		for (int i = 0, length = this.playersAsArray.size; i < length; i++) {
+			Player player = players[i];
+			player.update(deltaTime);
+		}
+		this.playersAsArray.end();
+	}
 	
 	@Override
 	public void registerEventListeners(EventManager eventManager) {
@@ -77,9 +88,8 @@ public class PlayerManager extends ControllerFactory<Player<PlayerModel>, Player
 		return this.players.get(id);
 	}
 	
-	@SuppressWarnings("unchecked")
 	public void updatePlayer(PlayerModel playerModel) {
-		Player<PlayerModel> actualPlayer = this.getPlayer(playerModel.id);
+		Player actualPlayer = this.getPlayer(playerModel.id);
 		
 		if (actualPlayer != null) {
 			actualPlayer.setModel(playerModel);
@@ -99,7 +109,9 @@ public class PlayerManager extends ControllerFactory<Player<PlayerModel>, Player
 		model.name = name;
 		
 		Player player = this.createController(model);
+		
 		this.players.put(model.id, player);
+		this.playersAsArray.add(player);
 		
 		if (this.eventManager.canGenerateEvent()) {
 			PlayerJoinedEvent.createAndFire(this.eventManager, model.id);
@@ -120,6 +132,9 @@ public class PlayerManager extends ControllerFactory<Player<PlayerModel>, Player
 		int playerId = player.getId();
 		
 		this.players.remove(playerId);
+		this.playersAsArray.removeValue(player, true);
+		
+		player.disconnected();
 		
 		if (this.listener != null) {
 			this.listener.onPlayerDisconnected(player, reason);
@@ -149,10 +164,9 @@ public class PlayerManager extends ControllerFactory<Player<PlayerModel>, Player
 		return false;
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Override
-	protected Player<PlayerModel> newController() {
-		return (Player<PlayerModel>)this.delegate.newPlayerController();
+	protected Player newController() {
+		return this.delegate.newPlayerController();
 	}
 
 	@Override

@@ -182,9 +182,17 @@ public class ServerService extends AbstractKeriousProtocolService implements Pee
 	}
 	
 	@Override
-	public void updateWorldWithCommands(ClientPeer peer, float directionAngle, float directionStrength, int actions) {
+	public void updateWorldWithCommands(ClientPeer peer, float directionAngle, float directionStrength, long actions) {
 		if (this.delegate != null) {
 			this.delegate.updateWorldWithCommands(this, peer.getPlayerId(), directionAngle, directionStrength, actions);
+		}
+	}
+	
+
+	@Override
+	public void becameReadyToReceiveSnapshots(ClientPeer peer) {
+		if (this.listener != null) {
+			this.listener.onPeerBecameReadyToReceiveSnapshots(this, peer);
 		}
 	}
 

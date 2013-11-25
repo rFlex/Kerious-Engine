@@ -13,8 +13,8 @@ import me.corsin.javatools.misc.Poolable;
 import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.utils.ControllerFactory;
 
-public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityModel>
-				extends ControllerFactory<T, T2> {
+public abstract class EntityCreator<T extends Entity, T2 extends EntityModel>
+				extends ControllerFactory<T, EntityModel> {
 
 	////////////////////////
 	// VARIABLES
@@ -53,8 +53,9 @@ public abstract class EntityCreator<T extends Entity<T2, ?>, T2 extends EntityMo
 		return super.createController(entityModel);
 	}
 	
+	@SuppressWarnings("unchecked")
 	public T2 createEntityModel() {
-		T2 entityModel = super.createModel();
+		T2 entityModel = (T2)super.createModel();
 		
 		entityModel.type = this.entityType;
 		

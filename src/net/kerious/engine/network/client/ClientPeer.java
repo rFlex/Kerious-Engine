@@ -13,14 +13,13 @@ import java.net.InetAddress;
 
 import net.kerious.engine.entity.Entity;
 import net.kerious.engine.network.protocol.KeriousProtocolPeer;
-import net.kerious.engine.network.protocol.packet.BasicCommandPacket;
+import net.kerious.engine.network.protocol.packet.CommandPacket;
 import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.network.protocol.packet.RequestPacket;
 import net.kerious.engine.network.protocol.packet.SnapshotPacket;
 import net.kerious.engine.network.protocol.packet.WorldInformationsPacket;
 import net.kerious.engine.player.Player;
-import net.kerious.engine.player.PlayerModel;
 import net.kerious.engine.world.World;
 import net.kerious.engine.world.event.Event;
 
@@ -81,7 +80,12 @@ public class ClientPeer extends KeriousProtocolPeer {
 			
 			switch (requestPacket.request) {
 			case RequestPacket.RequestBeginReceiveSnapshots:
-				this.readyToReceiveSnapshots = true;
+				if (this.readyToReceiveSnapshots != true) {
+					this.readyToReceiveSnapshots = true;
+					if (this.delegate != null) {
+						this.delegate.becameReadyToReceiveSnapshots(this);
+					}
+				}
 				break;
 			case RequestPacket.RequestEndReceiveSnapshots:
 				this.readyToReceiveSnapshots = false;
@@ -98,8 +102,8 @@ public class ClientPeer extends KeriousProtocolPeer {
 				return false;
 			}
 			break;
-		case KeriousPacket.TypeBasicCommand:
-			BasicCommandPacket commandPacket = (BasicCommandPacket)packet;
+		case KeriousPacket.TypeCommand:
+			CommandPacket commandPacket = (CommandPacket)packet;
 			
 			if (this.delegate != null) {
 				this.delegate.updateWorldWithCommands(this, commandPacket.directionAngle,
@@ -122,11 +126,11 @@ public class ClientPeer extends KeriousProtocolPeer {
 	public void sendSnapshot(World world) {
 		SnapshotPacket snapshotPacket = this.protocol.createSnapshotPacket();
 		
-		for (Entity<?, ?> entity : world.getEntityManager().getEntites()) {
+		for (Entity entity : world.getEntityManager().getEntites()) {
 			snapshotPacket.addModel(entity.getModel());
 		}
 
-		for (Player<PlayerModel> player : world.getPlayerManager().getPlayers()) {
+		for (Player player : world.getPlayerManager().getPlayers()) {
 			snapshotPacket.addPlayer(player.getModel());
 		}
 

@@ -28,7 +28,7 @@ public abstract class KeriousPacket extends KeriousSerializableData {
 	public static final byte TypeSnapshot = 5;
 	public static final byte TypeRequest = 6;
 	public static final byte TypeWorldInformations = 7;
-	public static final byte TypeBasicCommand = 8;
+	public static final byte TypeCommand = 8;
 	
 	public static final byte OptionIgnoreIfLost = 0x0;
 	public static final byte OptionResendIfLost = 0x1;

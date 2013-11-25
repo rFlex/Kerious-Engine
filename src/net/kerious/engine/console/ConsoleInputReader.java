@@ -69,7 +69,7 @@ public class ConsoleInputReader implements Closeable {
 				read();
 			}
 			
-		});
+		}, "Console-Reader");
 		thread.start();
 	}
 	
