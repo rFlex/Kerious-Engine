@@ -79,6 +79,13 @@ public class EntityModel extends KeriousSerializableData {
 		buffer.putFloat(this.width);
 		buffer.putFloat(this.height);
 	}
+	
+	public void interpolate(EntityModel entityModel, float ratio) {
+		this.x += (entityModel.x - this.x) * ratio;
+		this.y += (entityModel.y - this.y) * ratio;
+		this.width += (entityModel.width - this.width) * ratio;
+		this.height += (entityModel.height - this.height) * ratio;
+	}
 
 	////////////////////////
 	// GETTERS/SETTERS

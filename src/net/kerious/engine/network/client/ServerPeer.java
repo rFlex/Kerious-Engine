@@ -157,7 +157,7 @@ public class ServerPeer extends KeriousProtocolPeer {
 		case KeriousPacket.TypeSnapshot:
 			SnapshotPacket snapshotPacket = (SnapshotPacket)packet;
 			if (this.listener != null) {
-				this.listener.onReceivedSnapshot(this, snapshotPacket.players, snapshotPacket.models, snapshotPacket.events);
+				this.listener.onReceivedSnapshot(this, snapshotPacket);
 			}
 			break;
 		default:

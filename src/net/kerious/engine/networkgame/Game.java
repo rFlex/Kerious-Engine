@@ -7,7 +7,7 @@
 // File created on Nov 21, 2013 at 7:51:33 PM
 ////////
 
-package net.kerious.engine.play;
+package net.kerious.engine.networkgame;
 
 import java.io.Closeable;
 import java.net.SocketException;
@@ -58,6 +58,9 @@ public abstract class Game extends AbstractKeriousProtocolService implements Tem
 	@Override
 	public void update(float deltaTime) {
 		super.update(deltaTime);
+	}
+	
+	protected void updateWorld(float deltaTime) {
 		World world = this.world;
 		if (world != null) {
 			if (!this.worldIsReady) {

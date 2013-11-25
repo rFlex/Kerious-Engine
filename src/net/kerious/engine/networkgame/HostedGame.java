@@ -7,7 +7,7 @@
 // File created on Nov 21, 2013 at 7:46:57 PM
 ////////
 
-package net.kerious.engine.play;
+package net.kerious.engine.networkgame;
 
 import java.net.InetAddress;
 import java.net.SocketException;
@@ -15,6 +15,7 @@ import java.net.SocketException;
 import me.corsin.javatools.misc.ValueHolder;
 import net.kerious.engine.KeriousEngine;
 import net.kerious.engine.console.Console;
+import net.kerious.engine.console.DoubleConsoleCommand;
 import net.kerious.engine.console.IntegerConsoleCommand;
 import net.kerious.engine.entity.Entity;
 import net.kerious.engine.network.client.ClientPeer;
@@ -48,7 +49,10 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 	final private ValueHolder<String> refuseConnectionReasonVH;
 	private int playerIdSequence;
 	private IntegerConsoleCommand maxPlayers;
+	private DoubleConsoleCommand updateRate;
 	private boolean renderingEnabled;
+	private double time;
+	private double nextSnapshot;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -68,6 +72,9 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 		this.maxPlayers = new IntegerConsoleCommand("maxplayers", 0, Integer.MAX_VALUE);
 		this.maxPlayers.setValue(32);
 		
+		this.updateRate = new DoubleConsoleCommand("net_updaterate", 1.0, Double.MAX_VALUE);
+		this.updateRate.setValue(100.0);
+		
 		this.console.registerCommand(this.maxPlayers);
 		this.renderingEnabled = withRendering;
 	}
@@ -78,22 +85,32 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 	
 	@Override
 	public void update(float deltaTime) {
+		this.time += deltaTime;
+		
 		super.update(deltaTime);
+		
+		this.updateWorld(deltaTime);
 		
 		World world = this.getWorld();
 		
 		boolean worldReady = world != null && world.isResourcesLoaded();
 		ClientPeer[] peers = this.peersAsArray.begin();
 		
+		boolean shouldSendUpdate = this.time >= this.nextSnapshot;
+		
 		for (int i = 0, length = this.peersAsArray.size; i < length; i++) {
 			ClientPeer peer = peers[i];
 			
 			if (!peer.hasExpired()) {
 				peer.update(deltaTime);
-				if (worldReady && peer.isReadyToReceiveSnapshots()) {
-					peer.sendSnapshot(world);
-				} else {
-					peer.sendKeepAlivePacket();
+				
+				if (shouldSendUpdate) {
+					this.nextSnapshot = this.time + 1.0 / this.updateRate.getValue();
+					if (worldReady && peer.isReadyToReceiveSnapshots()) {
+						peer.sendSnapshot(world);
+					} else {
+						peer.sendKeepAlivePacket();
+					}
 				}
 			} else {
 				this.removePeer(peer);

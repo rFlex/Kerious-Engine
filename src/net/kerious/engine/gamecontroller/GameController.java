@@ -13,7 +13,7 @@ import net.kerious.engine.KeriousException;
 import net.kerious.engine.input.KeyboardResponder;
 import net.kerious.engine.network.protocol.KeriousProtocol;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
-import net.kerious.engine.play.CommandPacketCreator;
+import net.kerious.engine.networkgame.CommandPacketCreator;
 
 import com.badlogic.gdx.Input.Keys;
 

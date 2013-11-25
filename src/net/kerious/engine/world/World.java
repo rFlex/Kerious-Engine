@@ -51,7 +51,7 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	private boolean resourcesLoaded;
 	private boolean loadingResources;
 	private boolean failedLoadingResources;
-	private float time;
+	private double time;
 	private String loadingFailedReason;
 
 	////////////////////////
@@ -286,7 +286,7 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		return loadingFailedReason;
 	}
 	
-	public float getTime() {
+	public double getTime() {
 		return this.time;
 	}
 }

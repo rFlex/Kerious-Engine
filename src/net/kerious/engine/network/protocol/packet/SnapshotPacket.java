@@ -25,6 +25,7 @@ public class SnapshotPacket extends KeriousPacket {
 	// VARIABLES
 	////////////////
 
+	public double timestamp;
 	public Array<PlayerModel> players;
 	public Array<EntityModel> models;
 	public Array<Event> events;
@@ -66,6 +67,8 @@ public class SnapshotPacket extends KeriousPacket {
 	public void deserialize(KeriousProtocol protocol, ByteBuffer buffer) throws IOException {
 		super.deserialize(protocol, buffer);
 		
+		this.timestamp = buffer.getDouble();
+		
 		int length = buffer.getInt();
 		for (int i = 0; i < length; i++) {
 			byte modelType = buffer.get();
@@ -96,6 +99,7 @@ public class SnapshotPacket extends KeriousPacket {
 	public void serialize(KeriousProtocol protocol, ByteBuffer buffer) {
 		super.serialize(protocol, buffer);
 		
+		buffer.putDouble(this.timestamp);
 		buffer.putInt(this.models.size);
 		EntityModel[] models = this.models.items;
 		for (int i = 0, length = this.models.size; i < length; i++) {
@@ -124,6 +128,7 @@ public class SnapshotPacket extends KeriousPacket {
 	public void reset() {
 		super.reset();
 
+		this.timestamp = 0;
 		EntityModel[] models = this.models.items;
 		for (int i = 0, length = this.models.size; i < length; i++) {
 			EntityModel model = models[i];

@@ -7,7 +7,7 @@
 // File created on Nov 21, 2013 at 8:21:34 PM
 ////////
 
-package net.kerious.engine.play;
+package net.kerious.engine.networkgame;
 
 import java.net.InetAddress;
 import java.net.SocketException;
@@ -17,6 +17,7 @@ import net.kerious.engine.KeriousException;
 import net.kerious.engine.console.Commands;
 import net.kerious.engine.console.SimpleCommand;
 import net.kerious.engine.console.StringConsoleCommand;
+import net.kerious.engine.entity.Entity;
 import net.kerious.engine.entity.EntityException;
 import net.kerious.engine.entity.EntityManager;
 import net.kerious.engine.entity.model.EntityModel;
@@ -25,6 +26,7 @@ import net.kerious.engine.network.protocol.ServerPeerListener;
 import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.network.protocol.packet.RequestPacket;
+import net.kerious.engine.network.protocol.packet.SnapshotPacket;
 import net.kerious.engine.player.PlayerManager;
 import net.kerious.engine.player.PlayerModel;
 import net.kerious.engine.world.World;
@@ -40,9 +42,11 @@ public abstract class ClientGame extends Game implements ServerPeerListener {
 	////////////////
 
 	private StringConsoleCommand nameCommand;
+	private SimpleCommand disconnectCommand;
 	private ClientGameListener listener;
 	private CommandPacketCreator commandPacketCreator;
 	private ServerPeer serverPeer;
+	private NetInterpolation netInterpolation;
 	private int myPlayerId;
 	
 	////////////////////////
@@ -52,20 +56,33 @@ public abstract class ClientGame extends Game implements ServerPeerListener {
 	public ClientGame(KeriousEngine engine) throws SocketException {
 		super(engine, engine.getConsole(), 0);
 		
-		this.nameCommand = new StringConsoleCommand("name");
+		this.netInterpolation = new NetInterpolation();
 		
-		this.console.registerCommand(new SimpleCommand("disconnect") {
+		this.nameCommand = new StringConsoleCommand("name");
+		this.disconnectCommand = new SimpleCommand("disconnect") {
 			@Override
 			public void handle(String... parameters) {
 				disconnect();
 			}
-		});
+		}; 
+		
+		this.console.registerCommand(this.disconnectCommand);
 		this.console.registerCommand(this.nameCommand);
+		this.console.registerCommand(this.netInterpolation.getInterpCommand());
 	}
 
 	////////////////////////
 	// METHODS
 	////////////////
+	
+	@Override
+	public void close() {
+		super.close();
+		
+		this.console.unregisterCommand(this.nameCommand);
+		this.console.unregisterCommand(this.disconnectCommand);
+		this.console.unregisterCommand(this.netInterpolation.getInterpCommand());
+	}
 	
 	/**
 	 * Create a peer that represents a connection between this client and the server
@@ -120,7 +137,20 @@ public abstract class ClientGame extends Game implements ServerPeerListener {
 	
 	@Override
 	public void update(float deltaTime) {
+		this.netInterpolation.update(deltaTime);
+		
 		super.update(deltaTime);
+		
+		World world = this.getWorldIfReady();
+		
+		if (world != null) {
+			SnapshotPacket snapshotPacket = this.netInterpolation.getInterpolatedSnapshotPacket();
+			if (snapshotPacket != null) {
+				this.updateWorldWithSnapshot(world, snapshotPacket);
+			}
+		}
+		
+		this.updateWorld(deltaTime);
 
 		if (this.serverPeer != null) {
 			if (this.serverPeer.hasExpired()) {
@@ -131,11 +161,8 @@ public abstract class ClientGame extends Game implements ServerPeerListener {
 			
 			KeriousPacket packet = null;
 			
-			World world = this.getWorldIfReady();
-			if (world != null) {
-				if (this.commandPacketCreator != null) {
-					packet = this.commandPacketCreator.generateCommandPacket(this.protocol);
-				}
+			if (world != null && this.commandPacketCreator != null) {
+				packet = this.commandPacketCreator.generateCommandPacket(this.protocol);
 			}
 			
 			if (packet == null) {
@@ -246,35 +273,44 @@ public abstract class ClientGame extends Game implements ServerPeerListener {
 	public void onReceivedInformation(ServerPeer peer, String informationType, String information) {
 		this.console.processCommand(Commands.RemoteInformation, informationType, information);
 	}
+	
+	final private void updateWorldWithSnapshot(World world, SnapshotPacket snapshotPacket) {
+		final Array<PlayerModel> players = snapshotPacket.players;
+		final Array<Event> events = snapshotPacket.events;
+
+		final Event[] eventsArray = events.items;
+		for (int i = 0, length = events.size; i < length; i++) {
+			Event event = eventsArray[i];
+			world.fireEvent(event);
+		}
+		
+		final Array<EntityModel> entityModels = snapshotPacket.models;
+		final EntityManager entityManager = world.getEntityManager();
+		final EntityModel[] entityModelsArray = entityModels.items;
+		for (int i = 0, length = entityModels.size; i < length; i++) {
+			EntityModel entityModel = entityModelsArray[i];
+			try {
+				entityManager.updateEntity(entityModel);
+			} catch (EntityException e) {
+				e.printStackTrace();
+			}
+		}		
+
+
+		final PlayerManager playerManager = world.getPlayerManager();
+		final PlayerModel[] playersArray = players.items;
+		for (int i = 0, length = players.size; i < length; i++) {
+			PlayerModel player = playersArray[i];
+			playerManager.updatePlayer(player);
+		}
+	}
 
 	@Override
-	public void onReceivedSnapshot(ServerPeer peer, Array<PlayerModel> players, Array<EntityModel> entityModels, Array<Event> events) {
-		World world = this.getWorld();
+	public void onReceivedSnapshot(ServerPeer peer, SnapshotPacket snapshotPacket) {
+		World world = this.getWorldIfReady();
 		
-		if (world != null && world.isResourcesLoaded()) {
-			final Event[] eventsArray = events.items;
-			for (int i = 0, length = events.size; i < length; i++) {
-				Event event = eventsArray[i];
-				world.fireEvent(event);
-			}
-			
-			final PlayerManager playerManager = world.getPlayerManager();
-			final PlayerModel[] playersArray = players.items;
-			for (int i = 0, length = players.size; i < length; i++) {
-				PlayerModel player = playersArray[i];
-				playerManager.updatePlayer(player);
-			}
-			
-			final EntityManager entityManager = world.getEntityManager();
-			final EntityModel[] entityModelsArray = entityModels.items;
-			for (int i = 0, length = entityModels.size; i < length; i++) {
-				EntityModel entityModel = entityModelsArray[i];
-				try {
-					entityManager.updateEntity(entityModel);
-				} catch (EntityException e) {
-					e.printStackTrace();
-				}
-			}
+		if (world != null) {
+			this.netInterpolation.handleSnapshot(snapshotPacket);
 		}
 	}
 	

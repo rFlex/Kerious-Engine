@@ -7,7 +7,7 @@
 // File created on Nov 21, 2013 at 8:36:44 PM
 ////////
 
-package net.kerious.engine.play;
+package net.kerious.engine.networkgame;
 
 import net.kerious.engine.world.World;
 

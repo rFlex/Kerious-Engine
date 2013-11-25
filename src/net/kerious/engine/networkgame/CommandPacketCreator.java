@@ -1,4 +1,4 @@
-package net.kerious.engine.play;
+package net.kerious.engine.networkgame;
 
 import net.kerious.engine.network.protocol.KeriousProtocol;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
