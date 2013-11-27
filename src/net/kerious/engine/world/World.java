@@ -30,9 +30,17 @@ import net.kerious.engine.utils.TemporaryUpdatable;
 import net.kerious.engine.world.event.Event;
 import net.kerious.engine.world.event.EventManager;
 
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Contact;
+import com.badlogic.gdx.physics.box2d.ContactImpulse;
+import com.badlogic.gdx.physics.box2d.ContactListener;
+import com.badlogic.gdx.physics.box2d.Fixture;
+import com.badlogic.gdx.physics.box2d.Manifold;
 import com.badlogic.gdx.utils.SnapshotArray;
 
-public abstract class World extends ViewController implements TemporaryUpdatable, EntityManagerListener, PlayerManagerListener, ResourceBundleListener, Closeable {
+public abstract class World extends ViewController implements 	TemporaryUpdatable, EntityManagerListener,
+																PlayerManagerListener, ResourceBundleListener,
+																Closeable, ContactListener {
 
 	////////////////////////
 	// VARIABLES
@@ -44,6 +52,7 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	final private EventManager eventManager;
 	final private PlayerManager playerManager;
 	final private ResourceBundle resourceBundle;
+	private com.badlogic.gdx.physics.box2d.World box2dWorld;
 	private Console console;
 	private boolean addedToEngine;
 	private boolean renderingEnabled;
@@ -53,7 +62,11 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	private boolean failedLoadingResources;
 	private double time;
 	private String loadingFailedReason;
-
+	private float worldToPhysicsRatio;
+	private float physicsToWorldRatio;
+	private int velocityIterations;
+	private int positionIterations;
+	
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
@@ -67,6 +80,8 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		this.eventManager = new EventManager();
 		this.playerManager = new PlayerManager();
 		this.resourceBundle = new ResourceBundle();
+		this.box2dWorld = new com.badlogic.gdx.physics.box2d.World(new Vector2(), true);
+		this.box2dWorld.setContactListener(this);
 		
 		this.entityManager.setListener(this);
 		this.playerManager.setListener(this);
@@ -74,6 +89,10 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		this.resourcesLoaded = true;
 		this.setRenderingEnabled(true);
 		this.setHasAuthority(true);
+
+		this.setVelocityIterations(6);
+		this.setPositionIterations(2);
+		this.setMeterPointsSize(100);
 	}
 
 	////////////////////////
@@ -82,6 +101,8 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	
 	/**
 	 * Register the world to the engine so it starts to update itself
+	 * You MUST NOT use this method if the World is created inside a Game object
+	 * (like HostedGame and ClientGame)
 	 */
 	public void beginReceiveUpdates() {
 		if (!this.addedToEngine) {
@@ -106,14 +127,18 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		
 		this.playerManager.update(deltaTime);
 		
+		this.box2dWorld.step(deltaTime, this.velocityIterations, this.positionIterations);
+		
 		Entity[] entities = this.entities.begin();
 		for (int i = 0, length = this.entities.size; i < length; i++) {
 			Entity entity = entities[i];
 			
 			if (!entity.hasExpired()) {
+				entity.matchModelWithPhysics();
 				entity.update(deltaTime);
 			} else {
 				this.entities.removeValue(entity, true);
+				entity.removePhysicsBody();
 				entity.setWorld(null);
 			}
 		}
@@ -129,7 +154,6 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		this.entities.add(entity);
 		
 		entity.setWorld(this);
-		entity.addedToWorld();
 		entity.ready();
 	}
 
@@ -157,7 +181,7 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		this.eventManager.fireEvent(event);
 	}
 	
-	public void beginLoadRessources() {
+	public void load() {
 		if (!this.loadingResources) {
 			this.loadingResources = true;
 			this.resourcesLoaded = false;
@@ -165,14 +189,14 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		}
 	}
 	
-	public void unloadResources() {
+	public void unload() {
 		if (this.resourcesLoaded || this.loadingResources) {
 			this.getEngine().getResourceManager().unload(this.resourceBundle);
 			this.resourcesLoaded = false;
 		}
 	}
 	
-	abstract protected void worldReady();
+	abstract protected void ready();
 	
 	@Override
 	public void onLoadedItem(ResourceManager manager, ResourceBundle bundle, String fileName) {
@@ -187,7 +211,7 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		this.loadingFailedReason = null;
 		this.entityManager.registerEventListeners(this.eventManager);
 		this.playerManager.registerEventListeners(this.eventManager);
-		this.worldReady();
+		this.ready();
 	}
 
 	@Override
@@ -211,7 +235,43 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 	@Override
 	public void close() {
 		this.detachView();
-		this.unloadResources();
+		this.box2dWorld.dispose();
+		this.unload();
+	}
+	
+	@Override
+	public void beginContact(Contact contact) {
+		Fixture fixtureA = contact.getFixtureA();
+		Fixture fixtureB = contact.getFixtureB();
+		Entity firstEntity = (Entity)fixtureA.getBody().getUserData();
+		Entity secondEntity = (Entity)fixtureB.getBody().getUserData();
+		
+		if (firstEntity != null && secondEntity != null) {
+			firstEntity.beginContact(secondEntity, fixtureA, fixtureB);
+			secondEntity.beginContact(firstEntity, fixtureB, fixtureA);
+		}
+	}
+
+	@Override
+	public void endContact(Contact contact) {
+		Fixture fixtureA = contact.getFixtureA();
+		Fixture fixtureB = contact.getFixtureB();
+		Entity firstEntity = (Entity)fixtureA.getBody().getUserData();
+		Entity secondEntity = (Entity)fixtureB.getBody().getUserData();
+		
+		if (firstEntity != null && secondEntity != null) {
+			firstEntity.endContact(secondEntity, fixtureA, fixtureB);
+			secondEntity.endContact(firstEntity, fixtureB, fixtureA);
+		}
+	}
+
+	@Override
+	public void preSolve(Contact contact, Manifold oldManifold) {
+	}
+
+	@Override
+	public void postSolve(Contact contact, ContactImpulse impulse) {
+		
 	}
 	
 	////////////////////////
@@ -270,7 +330,7 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		return this.eventManager;
 	}
 
-	public boolean isResourcesLoaded() {
+	public boolean isLoaded() {
 		return resourcesLoaded;
 	}
 
@@ -278,15 +338,85 @@ public abstract class World extends ViewController implements TemporaryUpdatable
 		return resourceBundle;
 	}
 
-	public boolean hasFailedLoadingResources() {
+	public boolean hasFailedLoading() {
 		return failedLoadingResources;
 	}
 
-	public String getFailedLoadingResourcesReason() {
+	public String getFailedLoadingReason() {
 		return loadingFailedReason;
 	}
 	
 	public double getTime() {
 		return this.time;
+	}
+	
+	public float getGravityX() {
+		return this.box2dWorld.getGravity().x;
+	}
+	
+	public float getGravityY() {
+		return this.box2dWorld.getGravity().y;
+	}
+	
+	public void setGravityX(float gravityX) {
+		Vector2 gravity = this.box2dWorld.getGravity();
+		gravity.x = gravityX;
+		this.box2dWorld.setGravity(gravity);
+	}
+	
+	public void setGravityY(float gravityY) {
+		Vector2 gravity = this.box2dWorld.getGravity();
+		gravity.y = gravityY;
+		this.box2dWorld.setGravity(gravity);
+	}
+	
+	public void setGravity(float gravityX, float gravityY) {
+		Vector2 gravity = this.box2dWorld.getGravity();
+		gravity.x = gravityX;
+		gravity.y = gravityY;
+		this.box2dWorld.setGravity(gravity);
+	}
+	
+	public com.badlogic.gdx.physics.box2d.World getPhysicsWorld() {
+		return this.box2dWorld;
+	}
+
+	/**
+	 * Define how much points is a meter.
+	 * A value of 100 means 100 points in this world coordinate equals 1 meter.
+	 * The default value is 100
+	 * @param size
+	 */
+	public void setMeterPointsSize(float size) {
+		this.worldToPhysicsRatio = 1f / size;
+		this.physicsToWorldRatio = size;
+	}
+	
+	public float getMeterPointsSize() {
+		return this.physicsToWorldRatio;
+	}
+	
+	public float getPhysicsToWorldRatio() {
+		return this.physicsToWorldRatio;
+	}
+
+	public float getWorldToPhysicsRatio() {
+		return this.worldToPhysicsRatio;
+	}
+
+	public int getVelocityIterations() {
+		return velocityIterations;
+	}
+
+	public void setVelocityIterations(int velocityIterations) {
+		this.velocityIterations = velocityIterations;
+	}
+
+	public int getPositionIterations() {
+		return positionIterations;
+	}
+
+	public void setPositionIterations(int positionIterations) {
+		this.positionIterations = positionIterations;
 	}
 }

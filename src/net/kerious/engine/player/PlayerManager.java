@@ -202,6 +202,13 @@ public class PlayerManager extends ControllerFactory<Player, PlayerModel>
 		return delegate;
 	}
 
+	/**
+	 * Change the delegate that is responsible for creating players and player models
+	 * If you want to create your own players and player model you are in the good place!
+	 * Passing null will automatically set a delegate that creates dummy players
+	 * (who don't have any logic implemented) and creates the built-in default PlayerModel models
+	 * @param delegate
+	 */
 	public void setDelegate(PlayerManagerDelegate delegate) {
 		if (delegate == null) {
 			delegate = new DummyPlayerManagerDelegate();

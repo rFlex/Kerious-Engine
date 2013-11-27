@@ -9,6 +9,7 @@
 
 package net.kerious.engine.entity;
 
+import net.kerious.engine.KeriousException;
 import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.player.Player;
 import net.kerious.engine.skin.SkinException;
@@ -16,6 +17,14 @@ import net.kerious.engine.utils.Controller;
 import net.kerious.engine.utils.TemporaryUpdatable;
 import net.kerious.engine.view.View;
 import net.kerious.engine.world.World;
+
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.Fixture;
+import com.badlogic.gdx.physics.box2d.PolygonShape;
+import com.badlogic.gdx.utils.Array;
 
 public abstract class Entity extends Controller<EntityModel> implements TemporaryUpdatable {
 
@@ -28,12 +37,11 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 	private EntityManager entityManager;
 	private World world;
 	private View view;
-	private float velocityX;
-	private float velocityY;
 	private int currentSkinId;
 	private boolean shouldBeRemoved;
 	private boolean destroyWhenRemoved;
 	private boolean worldRenderingEnabled;
+	private Body physicsBody;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -51,12 +59,7 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 	 * Updated every frame. This is where you should update the entity logic
 	 * @param deltaTime
 	 */
-	public void update(float deltaTime) {
-		this.model.x += this.velocityX;
-		this.model.y += this.velocityY;
-		
-		this.updateView();
-	}
+	public abstract void update(float deltaTime);
 	
 	/**
 	 * This is where the Entity decides to add its view to the world. The basic implementation adds
@@ -162,6 +165,7 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 	@Override
 	protected void modelChanged() {
 		this.updateParent();
+		this.matchPhysicsWithModel();
 		this.updateSkin();
 		this.updateView();
 	}
@@ -177,7 +181,6 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 	 * Called when the view has changed
 	 */
 	protected void viewChanged() {
-		
 	}
 	
 	/**
@@ -257,41 +260,165 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 		}
 	}
 	
+	private BodyDef tmpBodyDef = new BodyDef();
+	
 	/**
-	 * Stop the current moving
-	 * Equivalent to setVelocityXY(0)
+	 * Create the physics body. The default implementation create a rectangle shape
+	 * that exactly fits the Entity.
+	 * Do NOT call this method directly if you want to add a physics body to the Entity,
+	 * use addPhysicsBody instead.
+	 * @param physicsWorld
+	 * @return
 	 */
-	public void stopMoving() {
-		this.setVelocityXY(0);
+	protected Body createPhysicsBodyWithWorld(com.badlogic.gdx.physics.box2d.World physicsWorld, float worldToPhysicsRatio) {
+		tmpBodyDef.type = BodyType.DynamicBody;
+		tmpBodyDef.position.x = this.model.x * worldToPhysicsRatio;
+		tmpBodyDef.position.y = this.model.y * worldToPhysicsRatio;
+		
+		Body body = physicsWorld.createBody(tmpBodyDef);
+
+		PolygonShape shape = new PolygonShape();
+		shape.setAsBox((this.model.width / 2) * worldToPhysicsRatio, (this.model.height / 2) * worldToPhysicsRatio);
+		
+		body.createFixture(shape, 1);
+		
+		shape.dispose();
+		
+		return body;
 	}
+	
+	final public void removePhysicsBody() {
+		if (this.physicsBody != null && this.world != null) {
+			final com.badlogic.gdx.physics.box2d.World physicsWorld = this.world.getPhysicsWorld();
+			physicsWorld.destroyBody(this.physicsBody);
+			this.physicsBody = null;
+		}
+	}
+
+	/**
+	 * Create and a physics body from the Entity data and add it to the world
+	 * This method will call createPhysicsBodyWithWorld and expects it to
+	 * return the newly created Body
+	 */
+	final public void addPhysicsBody() {
+		this.removePhysicsBody();
+		
+		World world = this.world;
+		
+		if (world != null) {
+			com.badlogic.gdx.physics.box2d.World physicsWorld = world.getPhysicsWorld();
+			this.physicsBody = this.createPhysicsBodyWithWorld(physicsWorld, world.getWorldToPhysicsRatio());
+			
+			if (this.physicsBody != null) {
+				this.physicsBody.setUserData(this);
+			}
+		} else {
+			throw new KeriousException("Cannot create physics body when the Entity is not in the World");
+		}
+	}
+	
+	/**
+	 * Make the physics position be the same as the model
+	 * On an Entity that doesn't have a physics body, this method
+	 * does nothing
+	 */
+	final public void matchPhysicsWithModel() {
+		Body body = this.physicsBody;
+		World world = this.world;
+		
+		if (body != null && world != null) {
+			float transformRatio = world.getWorldToPhysicsRatio();
+			
+			body.setTransform(this.model.x * transformRatio, this.model.y * transformRatio, body.getAngle());
+		}
+	}
+	
+	/**
+	 * Make the model position be the same as the physics.
+	 * On an Entity that doesn't have a physics body, this method
+	 * does nothing
+	 */
+	final public void matchModelWithPhysics() {
+		Body body = this.physicsBody;
+		World world = this.world;
+		
+		if (body != null && world != null) {
+			float transformRatio = world.getPhysicsToWorldRatio();
+			
+			Vector2 position = body.getPosition();
+			this.model.x = position.x * transformRatio;
+			this.model.y = position.y * transformRatio;
+		}
+	}
+
+	/**
+	 * Called when the Entity has started the contact with another entity 
+	 * @param otherEntity the other Entity which the Entity has contacted with
+	 * @param entityFixture the Fixture responsible for the contact on this entity
+	 * @param otherEntityFixture the Fixture responsible for the contact on the other entity
+	 */
+	public void beginContact(Entity otherEntity, Fixture entityFixture, Fixture otherEntityFixture) {
+		
+	}
+	
+	/**
+	 * Called when the Entity has ended the contact with another entity 
+	 * @param otherEntity the other Entity which the Entity has contacted with
+	 * @param entityFixture the Fixture responsible for the contact on this entity
+	 * @param otherEntityFixture the Fixture responsible for the contact on the other entity
+	 */
+	public void endContact(Entity otherEntity, Fixture entityFixture, Fixture otherEntityFixture) {
+		
+	}
+
 
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
 	
 	/**
-	 * Change the Entity's position and update the model
+	 * Change the Entity's position, update the model
+	 * and update the physics if any
 	 * @param x
 	 * @param y
 	 */
 	public void setPosition(float x, float y) {
 		this.model.x = x;
 		this.model.y = y;
+
+		this.matchPhysicsWithModel();
 		
 		if (this.worldRenderingEnabled) {
 			this.updateView();
 		}
 	}
 	
+	/**
+	 * Translate the Entity's position, update the model
+	 * and update the physics if any
+	 * @param x
+	 * @param y
+	 */
 	public void translate(float offsetX, float offsetY) {
 		this.model.x += offsetX;
 		this.model.y += offsetY;
 		
+		this.matchPhysicsWithModel();
+		
 		if (this.worldRenderingEnabled) {
 			this.updateView();
 		}
 	}
 	
+	/**
+	 * Change the entity size and update the model
+	 * This method has no impact on the physics.
+	 * If you really need to change the Entity size
+	 * after the physics body was created, you need
+	 * to remove the physics body and create one again
+	 * @param width
+	 * @param height
+	 */
 	public void setSize(float width, float height) {
 		this.model.width = width;
 		this.model.height = height;
@@ -309,11 +436,19 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 		return this.model.type;
 	}
 	
+	/**
+	 * Change the Entity's frame, update the model
+	 * and update the physics if any
+	 * @param x
+	 * @param y
+	 */
 	public void setFrame(float x, float y, float width, float height) {
 		this.model.x = x;
 		this.model.y = y;
 		this.model.width = width;
 		this.model.height = height;
+		
+		this.matchPhysicsWithModel();
 		
 		if (this.worldRenderingEnabled) {
 			this.updateView();
@@ -358,6 +493,8 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 		
 		if (world == null) {
 			this.removedFromWorld();
+		} else {
+			this.addedToWorld();
 		}
 	}
 
@@ -404,29 +541,66 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 		}
 	}
 
-	public float getVelocityX() {
-		return velocityX;
-	}
-
-	public void setVelocityX(float velocityX) {
-		this.velocityX = velocityX;
-	}
-
-	public float getVelocityY() {
-		return velocityY;
-	}
-
-	public void setVelocityY(float velocityY) {
-		this.velocityY = velocityY;
+	public Body getPhysicsBody() {
+		return physicsBody;
 	}
 	
-	public void setVelocityXY(float velocity) {
-		this.velocityX = velocity;
-		this.velocityY = velocity;
+	/**
+	 * Return the physics friction
+	 * Make sense and can be used as convenience if the physics body
+	 * doesn't have more than one fixture
+	 * @return 
+	 */
+	public float getFriction() {
+		Array<Fixture> fixtures = null;
+
+		if (this.physicsBody != null) {
+			fixtures = this.physicsBody.getFixtureList();
+		}
+		
+		return fixtures != null && fixtures.size > 0 ? fixtures.items[0].getFriction() : 0;
 	}
 	
-	public void setVelocity(float velocityX, float velocityY) {
-		this.velocityX = velocityX;
-		this.velocityY = velocityY;
+	/**
+	 * Set the physics friction of every fixtures in the physics body
+	 * @param friction
+	 */
+	public void setFriction(float friction) {
+		if (this.physicsBody != null) {
+			Array<Fixture> fixtures = this.physicsBody.getFixtureList();
+			for (int i = 0, length = fixtures.size; i < length; i++) {
+				fixtures.get(i).setFriction(friction);
+			}
+		}
+	}
+	
+	/**
+	 * Return the physics density of the first fixture in the physics body
+	 * Make sense and can be used as convenience if the physics body
+	 * doesn't have more than one fixture
+	 * @return
+	 */
+	public float getDensity() {
+		Array<Fixture> fixtures = null;
+
+		if (this.physicsBody != null) {
+			fixtures = this.physicsBody.getFixtureList();
+		}
+		
+		return fixtures != null && fixtures.size > 0 ? fixtures.items[0].getDensity() : 0;
+	}
+	
+	/**
+	 * Set the density of every fixtures in the physics body
+	 * @param density
+	 */
+	public void setDensity(float density) {
+		if (this.physicsBody != null) {
+			Array<Fixture> fixtures = this.physicsBody.getFixtureList();
+			for (int i = 0, length = fixtures.size; i < length; i++) {
+				fixtures.get(i).setDensity(density);
+			}
+			this.physicsBody.resetMassData();
+		}
 	}
 }

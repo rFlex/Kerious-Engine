@@ -64,11 +64,11 @@ public abstract class Game extends AbstractKeriousProtocolService implements Tem
 		World world = this.world;
 		if (world != null) {
 			if (!this.worldIsReady) {
-				if (world.isResourcesLoaded()) {
+				if (world.isLoaded()) {
 					this.worldIsReady = true;
 					this.worldIsReady();
-				} else if (world.hasFailedLoadingResources()) {
-					this.worldFailedLoad(world.getFailedLoadingResourcesReason());
+				} else if (world.hasFailedLoading()) {
+					this.worldFailedLoad(world.getFailedLoadingReason());
 					this.setWorld(null);
 				}
 			}
@@ -114,7 +114,7 @@ public abstract class Game extends AbstractKeriousProtocolService implements Tem
 			World world = this.createWorld(informations);
 			this.setWorld(world);
 			
-			world.beginLoadRessources();
+			world.load();
 		} catch (Exception e) {
 			this.worldFailedLoad(e.getMessage());
 		}
@@ -144,15 +144,20 @@ public abstract class Game extends AbstractKeriousProtocolService implements Tem
 	protected World getWorldIfReady() {
 		World world = this.world;
 
-		if (world != null && world.isResourcesLoaded()) {
+		if (world != null && this.worldIsReady) {
 			return world;
 		}
+		
 		return null;
 	}
 
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
+	
+	final public boolean isWorldReady() {
+		return this.worldIsReady;
+	}
 	
 	@Override
 	public boolean hasExpired() {
@@ -165,6 +170,7 @@ public abstract class Game extends AbstractKeriousProtocolService implements Tem
 	
 	public void setWorld(World world) {
 		if (this.world != world) {
+			this.worldIsReady = false;
 			if (this.world != null) {
 				this.world.close();
 			}

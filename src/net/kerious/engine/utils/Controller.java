@@ -67,6 +67,8 @@ public abstract class Controller<T extends KeriousSerializableData> extends Pool
 			}
 			
 			this.modelChanged();
+		} else {
+			this.modelChanged();
 		}
 	}
 

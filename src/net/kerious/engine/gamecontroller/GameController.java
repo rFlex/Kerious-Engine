@@ -108,6 +108,10 @@ public class GameController implements KeyboardResponder, CommandPacketCreator {
 	// GETTERS/SETTERS
 	////////////////
 	
+	public long getActions() {
+		return this.enableActions;
+	}
+	
 	public float getDirectionAngle() {
 		return directionAngle;
 	}

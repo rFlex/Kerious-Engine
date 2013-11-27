@@ -73,7 +73,7 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 		this.maxPlayers.setValue(32);
 		
 		this.updateRate = new DoubleConsoleCommand("net_updaterate", 1.0, Double.MAX_VALUE);
-		this.updateRate.setValue(100.0);
+		this.updateRate.setValue(100.);
 		
 		this.console.registerCommand(this.maxPlayers);
 		this.renderingEnabled = withRendering;
@@ -93,10 +93,13 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 		
 		World world = this.getWorld();
 		
-		boolean worldReady = world != null && world.isResourcesLoaded();
+		boolean worldReady = world != null && world.isLoaded();
 		ClientPeer[] peers = this.peersAsArray.begin();
 		
 		boolean shouldSendUpdate = this.time >= this.nextSnapshot;
+		if (shouldSendUpdate) {
+			this.nextSnapshot = this.time + 1.0 / this.updateRate.getValue();
+		}
 		
 		for (int i = 0, length = this.peersAsArray.size; i < length; i++) {
 			ClientPeer peer = peers[i];
@@ -105,7 +108,6 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 				peer.update(deltaTime);
 				
 				if (shouldSendUpdate) {
-					this.nextSnapshot = this.time + 1.0 / this.updateRate.getValue();
 					if (worldReady && peer.isReadyToReceiveSnapshots()) {
 						peer.sendSnapshot(world);
 					} else {
@@ -327,9 +329,9 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 	}
 	
 	final private void addPlayer(ClientPeer client) {
-		World world = this.getWorld();
+		World world = this.getWorldIfReady();
 		
-		if (world != null && world.isResourcesLoaded()) {
+		if (world != null) {
 			world.getPlayerManager().addPlayer(client.getPlayerId(), client.getName());
 			
 			RequestPacket packet = this.protocol.createRequestPacket(RequestPacket.RequestLoadWorld);

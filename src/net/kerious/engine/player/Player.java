@@ -1,6 +1,7 @@
 package net.kerious.engine.player;
 
 import net.kerious.engine.entity.Entity;
+import net.kerious.engine.gamecontroller.GameController;
 import net.kerious.engine.utils.Controller;
 import net.kerious.engine.world.World;
 
@@ -11,6 +12,7 @@ public abstract class Player extends Controller<PlayerModel> {
 	////////////////
 	
 	protected World world;
+	private GameController gameController;
 	
 	////////////////////////
 	// CONSTRUCTORS
@@ -50,7 +52,11 @@ public abstract class Player extends Controller<PlayerModel> {
 	 * Update the Player logic
 	 * @param deltaTime
 	 */
-	abstract public void update(float deltaTime);
+	public void update(float deltaTime) {
+		if (this.gameController != null) {
+			this.handleCommand(this.gameController.getDirectionAngle(), this.gameController.getDirectionStrength(), this.gameController.getActions());
+		}
+	}
 	
 	/**
 	 * 
@@ -82,5 +88,13 @@ public abstract class Player extends Controller<PlayerModel> {
 
 	public void setWorld(World world) {
 		this.world = world;
+	}
+
+	public final GameController getGameController() {
+		return gameController;
+	}
+
+	public final void setGameController(GameController gameController) {
+		this.gameController = gameController;
 	}
 }

@@ -113,7 +113,7 @@ public class CollisionHandler {
 	}
 	
 	private final ICollisionable foreach(ICollisionable collision, CollisionAction toDo) {
-		// Adding one prevent using the >= operator which is slower on flaot the > operator
+		// Adding one prevent using the >= operator which is slower on float the > operator
 		final float maxX = collision.getX() + collision.getWidth() + 1; 
 		final float maxY = collision.getY() + collision.getHeight() + 1;
 		
