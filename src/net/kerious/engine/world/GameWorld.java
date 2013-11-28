@@ -34,14 +34,12 @@ import net.kerious.engine.world.event.EventManager;
 
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObject;
-import com.badlogic.gdx.maps.MapProperties;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
-import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.ContactImpulse;
 import com.badlogic.gdx.physics.box2d.ContactListener;
@@ -80,7 +78,6 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 	private float physicsToWorldRatio;
 	private int velocityIterations;
 	private int positionIterations;
-	private float physicsStep;
 	
 	////////////////////////
 	// CONSTRUCTORS
@@ -102,7 +99,6 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 		this.playerManager.setListener(this);
 		
 		this.resourcesLoaded = true;
-		this.physicsStep = 1f / 60f;
 		
 		this.setRenderingEnabled(true);
 		this.setHasAuthority(true);
@@ -218,25 +214,24 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 	@Override
 	public void onFinishedCompileDependencies(ResourceManager resourceManager,
 			Resource<ResourceBundle> resource) {
-		System.out.println("Compiled dependencies (have " + resource.getTotalDependenciesCount() + " files to load)");
+		this.console.print("Compiled dependencies (have " + resource.getTotalDependenciesCount() + " files to load)");
 	}
 
 	@Override
 	public void onStartedLoadingDependency(ResourceManager resourceManager,
 			Resource<ResourceBundle> resource, Resource<?> loadingDependency) {
-		System.out.println("Starting loading dependency " + loadingDependency.getResourceDescriptor().getFileName());
 	}
 
 	@Override
 	public void onFinishedLoadingDependency(ResourceManager resourceManager,
 			Resource<ResourceBundle> resource, Resource<?> loadedDependency) {
-		System.out.println("Finished loading dependency " + loadedDependency.getResourceDescriptor().getFileName());
+		this.console.print("Loaded " + loadedDependency.getResourceDescriptor().getFileName());
 	}
 
 	@Override
 	public void onLoaded(ResourceManager resourceManager,
 			Resource<ResourceBundle> resource) {
-		System.out.println("Loaded");
+		this.console.print("Finished loading");
 		
 		this.loadingResources = false;
 		this.resourcesLoaded = true;
@@ -250,7 +245,7 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 	@Override
 	public void onFailedLoading(ResourceManager resourceManager,
 			Resource<ResourceBundle> resource, Throwable exception) {
-		System.out.println("Failed loading: " + exception);
+		this.console.printError("Failed loading: " + exception.getMessage());
 		exception.printStackTrace();
 		
 		if (this.console != null) {
@@ -300,6 +295,7 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 					
 					float width = rect.width / 2 * worldToPhysicsRatio;
 					float height = rect.height / 2 * worldToPhysicsRatio;
+					
 					bodyDef.position.x = width;
 					bodyDef.position.y = height;
 					shape.setAsBox(width, height, bodyDef.position, 0);

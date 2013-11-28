@@ -10,7 +10,6 @@
 package net.kerious.engine.view;
 
 import net.kerious.engine.renderer.DrawingContext;
-import net.kerious.engine.renderer.Projection;
 
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;

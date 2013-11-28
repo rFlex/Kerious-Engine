@@ -34,7 +34,7 @@ public class TextureLoader implements ResourceLoader<Texture> {
 	@Override
 	public Texture load(TaskQueue mainTaskQueue, Resource<Texture> resource, ResourceManager resourceManager) throws Exception {
 		if (mainTaskQueue == null) {
-			loadedTexture = new Texture(resource.getResourceDescriptor().getFileHandle()); 
+			loadedTexture = new Texture(resource.getResourceDescriptor().getFileHandle());
 		} else {
 			final Pixmap pixmap = new Pixmap(resource.getResourceDescriptor().getFileHandle());
 			
