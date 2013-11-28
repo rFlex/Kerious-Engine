@@ -21,7 +21,7 @@ import net.kerious.engine.network.client.AbstractKeriousProtocolService;
 import net.kerious.engine.network.protocol.KeriousProtocol;
 import net.kerious.engine.player.PlayerModelCreator;
 import net.kerious.engine.utils.TemporaryUpdatable;
-import net.kerious.engine.world.World;
+import net.kerious.engine.world.GameWorld;
 import net.kerious.engine.world.event.EventCreator;
 
 import com.badlogic.gdx.utils.ObjectMap;
@@ -35,7 +35,7 @@ public abstract class Game extends AbstractKeriousProtocolService implements Tem
 	
 	final protected Console console;
 	final protected KeriousEngine engine;
-	private World world;
+	private GameWorld world;
 	private boolean closed;
 	private boolean worldIsReady;
 	
@@ -61,7 +61,7 @@ public abstract class Game extends AbstractKeriousProtocolService implements Tem
 	}
 	
 	protected void updateWorld(float deltaTime) {
-		World world = this.world;
+		GameWorld world = this.world;
 		if (world != null) {
 			if (!this.worldIsReady) {
 				if (world.isLoaded()) {
@@ -111,7 +111,7 @@ public abstract class Game extends AbstractKeriousProtocolService implements Tem
 	public void loadWorld(ObjectMap<String, String> informations) {
 		this.worldIsReady = false;
 		try {
-			World world = this.createWorld(informations);
+			GameWorld world = this.createWorld(informations);
 			this.setWorld(world);
 			
 			world.load();
@@ -127,10 +127,10 @@ public abstract class Game extends AbstractKeriousProtocolService implements Tem
 	 * @param informations
 	 * @return
 	 */
-	abstract protected World newWorld(ObjectMap<String, String> informations);
+	abstract protected GameWorld newWorld(ObjectMap<String, String> informations);
 	
-	protected World createWorld(ObjectMap<String, String> informations) {
-		World world = this.newWorld(informations);
+	protected GameWorld createWorld(ObjectMap<String, String> informations) {
+		GameWorld world = this.newWorld(informations);
 		
 		if (world == null) {
 			throw new KeriousException("The Game didn't returns a world");
@@ -141,8 +141,8 @@ public abstract class Game extends AbstractKeriousProtocolService implements Tem
 		return world;
 	}
 	
-	protected World getWorldIfReady() {
-		World world = this.world;
+	protected GameWorld getWorldIfReady() {
+		GameWorld world = this.world;
 
 		if (world != null && this.worldIsReady) {
 			return world;
@@ -164,11 +164,11 @@ public abstract class Game extends AbstractKeriousProtocolService implements Tem
 		return this.closed;
 	}
 
-	public World getWorld() {
+	public GameWorld getWorld() {
 		return world;
 	}
 	
-	public void setWorld(World world) {
+	public void setWorld(GameWorld world) {
 		if (this.world != world) {
 			this.worldIsReady = false;
 			if (this.world != null) {

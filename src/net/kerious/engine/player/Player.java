@@ -3,7 +3,7 @@ package net.kerious.engine.player;
 import net.kerious.engine.entity.Entity;
 import net.kerious.engine.gamecontroller.GameController;
 import net.kerious.engine.utils.Controller;
-import net.kerious.engine.world.World;
+import net.kerious.engine.world.GameWorld;
 
 public abstract class Player extends Controller<PlayerModel> {
 
@@ -11,7 +11,7 @@ public abstract class Player extends Controller<PlayerModel> {
 	// VARIABLES
 	////////////////
 	
-	protected World world;
+	protected GameWorld world;
 	private GameController gameController;
 	
 	////////////////////////
@@ -82,11 +82,11 @@ public abstract class Player extends Controller<PlayerModel> {
 		return this.model.id;
 	}
 
-	public World getWorld() {
+	public GameWorld getWorld() {
 		return world;
 	}
 
-	public void setWorld(World world) {
+	public void setWorld(GameWorld world) {
 		this.world = world;
 	}
 

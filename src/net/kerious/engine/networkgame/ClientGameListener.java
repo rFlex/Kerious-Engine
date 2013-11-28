@@ -9,11 +9,11 @@
 
 package net.kerious.engine.networkgame;
 
-import net.kerious.engine.world.World;
+import net.kerious.engine.world.GameWorld;
 
 public interface ClientGameListener {
 
-	void onGameWorldLoaded(ClientGame game, World world);
+	void onGameWorldLoaded(ClientGame game, GameWorld world);
 	void onDisconnected(ClientGame game, String ip, int port, String reason);
 	void onConnected(ClientGame game, String ip, int port);
 	void onConnectionFailed(ClientGame game, String ip, int port, String reason);

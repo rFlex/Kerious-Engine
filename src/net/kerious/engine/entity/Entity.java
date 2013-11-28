@@ -16,8 +16,9 @@ import net.kerious.engine.skin.SkinException;
 import net.kerious.engine.utils.Controller;
 import net.kerious.engine.utils.TemporaryUpdatable;
 import net.kerious.engine.view.View;
-import net.kerious.engine.world.World;
+import net.kerious.engine.world.GameWorld;
 
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -35,7 +36,7 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 	private Player player;
 	private Entity parentEntity;
 	private EntityManager entityManager;
-	private World world;
+	private GameWorld world;
 	private View view;
 	private int currentSkinId;
 	private boolean shouldBeRemoved;
@@ -271,14 +272,23 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 	 * @return
 	 */
 	protected Body createPhysicsBodyWithWorld(com.badlogic.gdx.physics.box2d.World physicsWorld, float worldToPhysicsRatio) {
+		float x = this.model.x * worldToPhysicsRatio;
+		float y = this.model.y * worldToPhysicsRatio;
+		float widthRadius = this.model.width * worldToPhysicsRatio / 2f;
+		float heightRadius = this.model.height * worldToPhysicsRatio / 2f;
+		
 		tmpBodyDef.type = BodyType.DynamicBody;
-		tmpBodyDef.position.x = this.model.x * worldToPhysicsRatio;
-		tmpBodyDef.position.y = this.model.y * worldToPhysicsRatio;
+		tmpBodyDef.position.x = x;
+		tmpBodyDef.position.y = y;
+		tmpBodyDef.fixedRotation = true;
 		
 		Body body = physicsWorld.createBody(tmpBodyDef);
 
+		tmpBodyDef.position.x = widthRadius;
+		tmpBodyDef.position.y = heightRadius;
+		
 		PolygonShape shape = new PolygonShape();
-		shape.setAsBox((this.model.width / 2) * worldToPhysicsRatio, (this.model.height / 2) * worldToPhysicsRatio);
+		shape.setAsBox(widthRadius, heightRadius, tmpBodyDef.position, 0);
 		
 		body.createFixture(shape, 1);
 		
@@ -296,14 +306,14 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 	}
 
 	/**
-	 * Create and a physics body from the Entity data and add it to the world
+	 * Create a physics body from the Entity data and add it to the world
 	 * This method will call createPhysicsBodyWithWorld and expects it to
 	 * return the newly created Body
 	 */
 	final public void addPhysicsBody() {
 		this.removePhysicsBody();
 		
-		World world = this.world;
+		GameWorld world = this.world;
 		
 		if (world != null) {
 			com.badlogic.gdx.physics.box2d.World physicsWorld = world.getPhysicsWorld();
@@ -324,7 +334,7 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 	 */
 	final public void matchPhysicsWithModel() {
 		Body body = this.physicsBody;
-		World world = this.world;
+		GameWorld world = this.world;
 		
 		if (body != null && world != null) {
 			float transformRatio = world.getWorldToPhysicsRatio();
@@ -340,7 +350,7 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 	 */
 	final public void matchModelWithPhysics() {
 		Body body = this.physicsBody;
-		World world = this.world;
+		GameWorld world = this.world;
 		
 		if (body != null && world != null) {
 			float transformRatio = world.getPhysicsToWorldRatio();
@@ -371,10 +381,13 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 		
 	}
 
-
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
+	
+	public boolean hasPhysicsBody() {
+		return this.physicsBody != null;
+	}
 	
 	/**
 	 * Change the Entity's position, update the model
@@ -436,6 +449,10 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 		return this.model.type;
 	}
 	
+	public void setFrame(Rectangle frame) {
+		this.setFrame(frame.x, frame.y, frame.width, frame.height);
+	}
+	
 	/**
 	 * Change the Entity's frame, update the model
 	 * and update the physics if any
@@ -482,11 +499,11 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 		return this.shouldBeRemoved;
 	}
 
-	public World getWorld() {
+	public GameWorld getWorld() {
 		return world;
 	}
 
-	public void setWorld(World world) {
+	public void setWorld(GameWorld world) {
 		this.world = world;
 		
 		this.worldRenderingEnabled = world != null && world.isRenderingEnabled();

@@ -62,4 +62,14 @@ public class NullRenderer implements Renderer {
 	public float getWindowHeight() {
 		return 0;
 	}
+
+	@Override
+	public DrawingContext getContext() {
+		return null;
+	}
+
+	@Override
+	public boolean isDrawingContextAvailable() {
+		return false;
+	}
 }

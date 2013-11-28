@@ -9,48 +9,48 @@
 
 package net.kerious.engine.resource;
 
-import com.badlogic.gdx.utils.Array;
+import me.corsin.javatools.string.StringUtils;
 
-public class ResourceBundle {
+import com.badlogic.gdx.files.FileHandle;
+
+public class ResourceBundle extends Resource<ResourceBundle> {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
-	
-	private Array<ResourceInfo> resources;
 	
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 	
 	public ResourceBundle() {
-		this.resources = new Array<ResourceInfo>();
+		super(ResourceBundle.class, new FileHandle(StringUtils.randomAlphaNumericString(12)));
 	}
 
 	////////////////////////
 	// METHODS
 	////////////////
-	
-	public <T> void add(String fileName, Class<T> resourceType) {
-		ResourceInfo resource = new ResourceInfo();
-		resource.fileName = fileName;
-		resource.resourceType = resourceType;
-		
-		this.resources.add(resource);
+
+	/**
+	 * Add a resource to load in the Bundle
+	 * @param resourceType
+	 * @param fileName
+	 */
+	public void add(Class<?> resourceType, String fileName) {
+		this.addDependency(resourceType, fileName);
 	}
 	
+	/**
+	 * Remove a resource to load from the Bundle
+	 * @param resourceType
+	 * @param fileName
+	 */
 	public void remove(String fileName) {
-		ResourceInfo resource = new ResourceInfo();
-		resource.fileName = fileName;
-		
-		this.resources.removeValue(resource, false);
+		this.removeDependency(fileName);
 	}
 
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
-	
-	public Array<ResourceInfo> getResources() {
-		return this.resources;
-	}
+
 }

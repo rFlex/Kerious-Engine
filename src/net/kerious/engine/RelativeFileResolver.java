@@ -1,37 +1,40 @@
 /////////////////////////////////////////////////
 // Project : Kerious Engine
 // Package : net.kerious.engine
-// KeriousException.java
+// RelativeFileResolver.java
 //
 // Author : Simon CORSIN <simoncorsin@gmail.com>
-// File created on Nov 2, 2013 at 6:30:02 PM
+// File created on Nov 28, 2013 at 2:03:06 PM
 ////////
 
 package net.kerious.engine;
 
-public class KeriousException extends RuntimeException {
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.assets.loaders.FileHandleResolver;
+import com.badlogic.gdx.files.FileHandle;
+
+public class RelativeFileResolver implements FileHandleResolver {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
-	
-	private static final long serialVersionUID = 70965039865656817L;
 
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
-	
-	public KeriousException(String message, Exception inner) {
-		super(message, inner);
-	}
-
-	public KeriousException(String message) {
-		super(message);
-	}
 
 	////////////////////////
 	// METHODS
 	////////////////
+
+	@Override
+	public FileHandle resolve(String fileName) {
+		if (Gdx.files != null) {
+			return Gdx.files.internal(fileName);
+		}
+		
+		return new FileHandle(fileName);
+	}
 
 	////////////////////////
 	// GETTERS/SETTERS

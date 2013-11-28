@@ -16,7 +16,7 @@ import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.network.protocol.packet.SnapshotPacket;
 import net.kerious.engine.player.PlayerManager;
 import net.kerious.engine.player.PlayerModel;
-import net.kerious.engine.world.World;
+import net.kerious.engine.world.GameWorld;
 import net.kerious.engine.world.event.Event;
 
 import com.badlogic.gdx.utils.Array;
@@ -50,7 +50,7 @@ public class NetInterpolation {
 		return this.pendingSnapshotPackets.size > 0 ? this.pendingSnapshotPackets.items[0] : null;
 	}
 	
-	public void update(double currentTime, World world) {
+	public void update(double currentTime, GameWorld world) {
 		this.currentTime = currentTime;
 		
 		boolean removedTopsnapshotPacket = true;
@@ -87,7 +87,7 @@ public class NetInterpolation {
 		this.pendingSnapshotPackets.add(snapshotPacket);
 	}
 	
-	private final void updateWorldInterpolated(World world) {
+	private final void updateWorldInterpolated(GameWorld world) {
 		SnapshotPacket interpolatedPacket = this.getInterpolatedSnapshotPacket();
 		
 		if (interpolatedPacket != null) {
@@ -105,7 +105,7 @@ public class NetInterpolation {
 		}
 	}
 	
-	private final void updateWorldWithSnapshot(World world, SnapshotPacket snapshotPacket) {
+	private final void updateWorldWithSnapshot(GameWorld world, SnapshotPacket snapshotPacket) {
 		final Array<PlayerModel> players = snapshotPacket.players;
 		final Array<Event> events = snapshotPacket.events;
 

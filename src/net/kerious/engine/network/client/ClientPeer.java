@@ -20,7 +20,7 @@ import net.kerious.engine.network.protocol.packet.RequestPacket;
 import net.kerious.engine.network.protocol.packet.SnapshotPacket;
 import net.kerious.engine.network.protocol.packet.WorldInformationsPacket;
 import net.kerious.engine.player.Player;
-import net.kerious.engine.world.World;
+import net.kerious.engine.world.GameWorld;
 import net.kerious.engine.world.event.Event;
 
 import com.badlogic.gdx.utils.ObjectSet;
@@ -123,7 +123,7 @@ public class ClientPeer extends KeriousProtocolPeer {
 		this.pendingEvents.add(event);
 	}
 	
-	public void sendSnapshot(World world) {
+	public void sendSnapshot(GameWorld world) {
 		SnapshotPacket snapshotPacket = this.protocol.createSnapshotPacket();
 		
 		for (Entity entity : world.getEntityManager().getEntites()) {

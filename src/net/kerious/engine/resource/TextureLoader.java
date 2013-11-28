@@ -9,12 +9,11 @@
 
 package net.kerious.engine.resource;
 
-import com.badlogic.gdx.files.FileHandle;
+import me.corsin.javatools.task.TaskQueue;
+
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
-
-import me.corsin.javatools.task.TaskQueue;
-import net.kerious.engine.KeriousException;
+import com.badlogic.gdx.utils.Array;
 
 public class TextureLoader implements ResourceLoader<Texture> {
 
@@ -31,14 +30,13 @@ public class TextureLoader implements ResourceLoader<Texture> {
 	////////////////////////
 	// METHODS
 	////////////////
-	
+
 	@Override
-	public Texture load(TaskQueue mainTaskQueue, FileHandle file)
-			throws KeriousException {
+	public Texture load(TaskQueue mainTaskQueue, Resource<Texture> resource, ResourceManager resourceManager) throws Exception {
 		if (mainTaskQueue == null) {
-			loadedTexture = new Texture(file); 
+			loadedTexture = new Texture(resource.getResourceDescriptor().getFileHandle()); 
 		} else {
-			final Pixmap pixmap = new Pixmap(file);
+			final Pixmap pixmap = new Pixmap(resource.getResourceDescriptor().getFileHandle());
 			
 			mainTaskQueue.executeSync(new Runnable() {
 				@Override
@@ -49,6 +47,16 @@ public class TextureLoader implements ResourceLoader<Texture> {
 		}
 		
 		return loadedTexture;
+	}
+
+	@Override
+	public Array<ResourceDescriptor> compileDependencies(Resource<Texture> resource) {
+		return null;
+	}
+
+	@Override
+	public boolean needsDrawingContext() {
+		return true;
 	}
 
 	////////////////////////

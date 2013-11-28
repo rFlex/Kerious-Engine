@@ -9,10 +9,9 @@
 
 package net.kerious.engine.resource;
 
-import com.badlogic.gdx.files.FileHandle;
-
-import net.kerious.engine.KeriousException;
 import me.corsin.javatools.task.TaskQueue;
+
+import com.badlogic.gdx.utils.Array;
 
 public interface ResourceLoader<T> {
 
@@ -22,8 +21,11 @@ public interface ResourceLoader<T> {
 	 * the mainTaskQueue is provided in case of the loader needs to access the openGL context for instance
 	 * @param resource the resource to load
 	 * @return the loaded resource
-	 * @throws KeriousException
 	 */
-	T load(TaskQueue mainTaskQueue, FileHandle file) throws KeriousException;
+	T load(TaskQueue mainTaskQueue, Resource<T> resource, ResourceManager resourceManager) throws Exception;
 	
+	Array<ResourceDescriptor> compileDependencies(Resource<T> resource) throws Exception;
+	
+	boolean needsDrawingContext();
+
 }

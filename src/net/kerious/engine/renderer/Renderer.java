@@ -9,8 +9,8 @@
 
 package net.kerious.engine.renderer;
 
-import net.kerious.engine.view.View;
 import me.corsin.javatools.misc.Disposable;
+import net.kerious.engine.view.View;
 
 public interface Renderer extends Disposable {
 	
@@ -19,5 +19,8 @@ public interface Renderer extends Disposable {
 	
 	float getWindowWidth();
 	float getWindowHeight();
+	
+	DrawingContext getContext();
+	boolean isDrawingContextAvailable();
 
 }

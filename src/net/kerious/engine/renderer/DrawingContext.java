@@ -18,7 +18,7 @@ import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Rectangle;
 
 public interface DrawingContext extends Closeable {
-
+	
 	void fillRectangle(Color color, float x, float y, float width, float height, float rotation);
 	void fillRectangle(TextureRegion textureRegion, float x, float y, float width, float height,
 			float alpha, float rotation);

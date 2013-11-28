@@ -22,6 +22,7 @@ import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.SnapshotArray;
 
 public class View extends PoolableImpl implements TouchResponder {
@@ -305,6 +306,18 @@ public class View extends PoolableImpl implements TouchResponder {
 		animation.setView(this);
 		
 		this.animations.add(animation);
+	}
+	
+	public <T extends View> void addViews(Array<T> views) {
+		for (int i = 0, length = views.size; i < length; i++) {
+			this.addView(views.get(i));
+		}
+	}
+	
+	public void addViews(View ... views) {
+		for (int i = 0, length = views.length; i < length; i++) {
+			this.addView(views[i]);
+		}
 	}
 	
 	public void addView(View view) {

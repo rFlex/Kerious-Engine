@@ -19,28 +19,42 @@ import net.kerious.engine.entity.Entity;
 import net.kerious.engine.entity.EntityException;
 import net.kerious.engine.entity.EntityManager;
 import net.kerious.engine.entity.EntityManagerListener;
+import net.kerious.engine.map.GameMap;
 import net.kerious.engine.player.Player;
 import net.kerious.engine.player.PlayerManager;
 import net.kerious.engine.player.PlayerManagerListener;
+import net.kerious.engine.resource.Resource;
 import net.kerious.engine.resource.ResourceBundle;
-import net.kerious.engine.resource.ResourceBundleListener;
+import net.kerious.engine.resource.ResourceLoadListener;
 import net.kerious.engine.resource.ResourceManager;
 import net.kerious.engine.skin.SkinManager;
 import net.kerious.engine.utils.TemporaryUpdatable;
 import net.kerious.engine.world.event.Event;
 import net.kerious.engine.world.event.EventManager;
 
+import com.badlogic.gdx.maps.MapLayer;
+import com.badlogic.gdx.maps.MapObject;
+import com.badlogic.gdx.maps.MapProperties;
+import com.badlogic.gdx.maps.objects.RectangleMapObject;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.ContactImpulse;
 import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.badlogic.gdx.physics.box2d.Fixture;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.Manifold;
+import com.badlogic.gdx.physics.box2d.PolygonShape;
+import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.SnapshotArray;
 
-public abstract class World extends ViewController implements 	TemporaryUpdatable, EntityManagerListener,
-																PlayerManagerListener, ResourceBundleListener,
-																Closeable, ContactListener {
+public abstract class GameWorld extends ViewController implements 	TemporaryUpdatable, EntityManagerListener,
+																	PlayerManagerListener, ResourceLoadListener<ResourceBundle>,
+																	Closeable, ContactListener {
 
 	////////////////////////
 	// VARIABLES
@@ -52,7 +66,7 @@ public abstract class World extends ViewController implements 	TemporaryUpdatabl
 	final private EventManager eventManager;
 	final private PlayerManager playerManager;
 	final private ResourceBundle resourceBundle;
-	private com.badlogic.gdx.physics.box2d.World box2dWorld;
+	private World box2dWorld;
 	private Console console;
 	private boolean addedToEngine;
 	private boolean renderingEnabled;
@@ -66,12 +80,13 @@ public abstract class World extends ViewController implements 	TemporaryUpdatabl
 	private float physicsToWorldRatio;
 	private int velocityIterations;
 	private int positionIterations;
+	private float physicsStep;
 	
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 	
-	public World(KeriousEngine engine) {
+	public GameWorld(KeriousEngine engine) {
 		super(engine);
 		
 		this.entities = new SnapshotArray<Entity>(true, 64, Entity.class);
@@ -87,6 +102,8 @@ public abstract class World extends ViewController implements 	TemporaryUpdatabl
 		this.playerManager.setListener(this);
 		
 		this.resourcesLoaded = true;
+		this.physicsStep = 1f / 60f;
+		
 		this.setRenderingEnabled(true);
 		this.setHasAuthority(true);
 
@@ -197,14 +214,30 @@ public abstract class World extends ViewController implements 	TemporaryUpdatabl
 	}
 	
 	abstract protected void ready();
-	
+
 	@Override
-	public void onLoadedItem(ResourceManager manager, ResourceBundle bundle, String fileName) {
-		
+	public void onFinishedCompileDependencies(ResourceManager resourceManager,
+			Resource<ResourceBundle> resource) {
+		System.out.println("Compiled dependencies (have " + resource.getTotalDependenciesCount() + " files to load)");
 	}
 
 	@Override
-	public void onLoaded(ResourceManager manager, ResourceBundle bundle) {
+	public void onStartedLoadingDependency(ResourceManager resourceManager,
+			Resource<ResourceBundle> resource, Resource<?> loadingDependency) {
+		System.out.println("Starting loading dependency " + loadingDependency.getResourceDescriptor().getFileName());
+	}
+
+	@Override
+	public void onFinishedLoadingDependency(ResourceManager resourceManager,
+			Resource<ResourceBundle> resource, Resource<?> loadedDependency) {
+		System.out.println("Finished loading dependency " + loadedDependency.getResourceDescriptor().getFileName());
+	}
+
+	@Override
+	public void onLoaded(ResourceManager resourceManager,
+			Resource<ResourceBundle> resource) {
+		System.out.println("Loaded");
+		
 		this.loadingResources = false;
 		this.resourcesLoaded = true;
 		this.failedLoadingResources = false;
@@ -215,18 +248,17 @@ public abstract class World extends ViewController implements 	TemporaryUpdatabl
 	}
 
 	@Override
-	public void onLoadingFailed(ResourceManager manager, ResourceBundle bundle, Throwable exception) {
+	public void onFailedLoading(ResourceManager resourceManager,
+			Resource<ResourceBundle> resource, Throwable exception) {
+		System.out.println("Failed loading: " + exception);
+		exception.printStackTrace();
+		
 		if (this.console != null) {
 			this.console.processCommand(Commands.PrintError, exception.getMessage());
 		}
 		
 		this.failedLoadingResources = true;
-		this.loadingFailedReason = exception.getMessage();
-	}
-
-	@Override
-	public void onLoadingProgressChanged(ResourceManager manager, ResourceBundle bundle, float progressRatio) {
-		
+		this.loadingFailedReason = exception.getMessage();		
 	}
 
 	/**
@@ -237,6 +269,47 @@ public abstract class World extends ViewController implements 	TemporaryUpdatabl
 		this.detachView();
 		this.box2dWorld.dispose();
 		this.unload();
+	}
+	
+	/**
+	 * Fetch every recognized objects from the map and inject the physics into the world
+	 * @param map
+	 */
+	public void injectPhysicsFromMap(GameMap map) {
+		BodyDef bodyDef = new BodyDef();
+		bodyDef.type = BodyType.StaticBody;
+		bodyDef.fixedRotation = true;
+		FixtureDef fixtureDef = new FixtureDef();
+		fixtureDef.density = 0;
+		fixtureDef.restitution = 0;
+		PolygonShape shape = new PolygonShape();
+		fixtureDef.shape = shape;
+
+		float worldToPhysicsRatio = this.worldToPhysicsRatio;
+		
+		for (MapLayer mapLayer : map.getTiledMap().getLayers()) {
+			for (MapObject mapObject : mapLayer.getObjects()) {
+				if (mapObject instanceof RectangleMapObject) {
+					RectangleMapObject rectangleMapObject = (RectangleMapObject)mapObject;
+					Rectangle rect = rectangleMapObject.getRectangle();
+					
+					bodyDef.position.x = rect.x * worldToPhysicsRatio;
+					bodyDef.position.y = rect.y * worldToPhysicsRatio;
+					
+					Body body = this.box2dWorld.createBody(bodyDef);
+					
+					float width = rect.width / 2 * worldToPhysicsRatio;
+					float height = rect.height / 2 * worldToPhysicsRatio;
+					bodyDef.position.x = width;
+					bodyDef.position.y = height;
+					shape.setAsBox(width, height, bodyDef.position, 0);
+					
+					body.createFixture(shape, 0);
+				}
+			}
+		}
+		fixtureDef.shape = null;
+		shape.dispose();
 	}
 	
 	@Override

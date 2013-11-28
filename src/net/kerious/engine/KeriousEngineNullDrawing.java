@@ -27,7 +27,7 @@ public class KeriousEngineNullDrawing extends KeriousEngine {
 	////////////////
 	
 	public KeriousEngineNullDrawing(KeriousEngineListener listener) {
-		super(new NullRenderer(), new NullInputManager(), null, listener);
+		super(new NullRenderer(), new NullInputManager(), new RelativeFileResolver(), listener);
 
 		this.initCommands();
 	}
@@ -97,18 +97,16 @@ public class KeriousEngineNullDrawing extends KeriousEngine {
 	public static void startAsync(KeriousEngineListener listener, int fps) {
 		final KeriousEngineListener finalListener = listener;
 		final int finalFps = fps;
+		
 		Thread thread = new Thread(new Runnable() {
-
-			@Override
 			public void run() {
 				start(finalListener, finalFps);
 			}
-			
-		}, "Kerious-Engine Thread");
-		
+		});
 		thread.start();
 	}
-	
+
+
 	/**
 	 * Start the engine and the loop in the current thread
 	 * @param listener

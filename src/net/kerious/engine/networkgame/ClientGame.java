@@ -23,7 +23,7 @@ import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.network.protocol.packet.RequestPacket;
 import net.kerious.engine.network.protocol.packet.SnapshotPacket;
-import net.kerious.engine.world.World;
+import net.kerious.engine.world.GameWorld;
 
 import com.badlogic.gdx.utils.ObjectMap;
 
@@ -133,7 +133,7 @@ public abstract class ClientGame extends Game implements ServerPeerListener {
 		this.sessionTime += deltaTime;
 		super.update(deltaTime);
 		
-		World world = this.getWorldIfReady();
+		GameWorld world = this.getWorldIfReady();
 		
 		this.netInterpolation.update(this.sessionTime, world);
 		
@@ -144,21 +144,21 @@ public abstract class ClientGame extends Game implements ServerPeerListener {
 				this.onDisconnected(this.serverPeer, this.serverPeer.getDisconnectReason());
 			} else {
 				this.serverPeer.update(deltaTime);
+				
+				KeriousPacket packet = null;
+				
+				if (world != null && this.commandPacketCreator != null) {
+					packet = this.commandPacketCreator.generateCommandPacket(this.protocol);
+				}
+				
+				if (packet == null) {
+					packet = this.protocol.createKeepAlivePacket();
+				}
+				
+				this.serverPeer.send(packet);
+				
+				packet.release();
 			}
-			
-			KeriousPacket packet = null;
-			
-			if (world != null && this.commandPacketCreator != null) {
-				packet = this.commandPacketCreator.generateCommandPacket(this.protocol);
-			}
-			
-			if (packet == null) {
-				packet = this.protocol.createKeepAlivePacket();
-			}
-			
-			this.serverPeer.send(packet);
-			
-			packet.release();
 		}
 		
 	}
@@ -236,8 +236,8 @@ public abstract class ClientGame extends Game implements ServerPeerListener {
 	}
 	
 	@Override
-	protected World createWorld(ObjectMap<String, String> informations) {
-		final World world = super.createWorld(informations);
+	protected GameWorld createWorld(ObjectMap<String, String> informations) {
+		final GameWorld world = super.createWorld(informations);
 		
 		world.setHasAuthority(false);
 		world.setRenderingEnabled(true);
@@ -263,7 +263,7 @@ public abstract class ClientGame extends Game implements ServerPeerListener {
 
 	@Override
 	public void onReceivedSnapshot(ServerPeer peer, SnapshotPacket snapshotPacket) {
-		World world = this.getWorldIfReady();
+		GameWorld world = this.getWorldIfReady();
 		
 		if (world != null) {
 			this.netInterpolation.handleSnapshot(snapshotPacket);
@@ -277,7 +277,7 @@ public abstract class ClientGame extends Game implements ServerPeerListener {
 	 * @param world
 	 * @return
 	 */
-	protected abstract CommandPacketCreator getCommandPacketCreator(ClientGame game, World world);
+	protected abstract CommandPacketCreator getCommandPacketCreator(ClientGame game, GameWorld world);
 
 	////////////////////////
 	// GETTERS/SETTERS

@@ -27,7 +27,7 @@ import net.kerious.engine.network.protocol.packet.KeriousPacket;
 import net.kerious.engine.network.protocol.packet.RequestPacket;
 import net.kerious.engine.player.Player;
 import net.kerious.engine.utils.TemporaryUpdatableArray;
-import net.kerious.engine.world.World;
+import net.kerious.engine.world.GameWorld;
 import net.kerious.engine.world.event.EntityCreatedEvent;
 import net.kerious.engine.world.event.Event;
 import net.kerious.engine.world.event.EventManager;
@@ -91,7 +91,7 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 		
 		this.updateWorld(deltaTime);
 		
-		World world = this.getWorld();
+		GameWorld world = this.getWorld();
 		
 		boolean worldReady = world != null && world.isLoaded();
 		ClientPeer[] peers = this.peersAsArray.begin();
@@ -169,7 +169,7 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 		
 		this.console.print(peer + " disconnected (" + peer.getDisconnectReason() + ")");
 		
-		World world = this.getWorld();
+		GameWorld world = this.getWorld();
 		
 		if (world != null) {
 			world.getPlayerManager().removePlayer(peer.getPlayerId(), peer.getName());
@@ -230,7 +230,7 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 	
 	@Override
 	public void updateWorldWithCommands(ClientPeer peer, float directionAngle, float directionStrength, long actions) {
-		World world = this.getWorldIfReady();
+		GameWorld world = this.getWorldIfReady();
 		
 		if (world != null) {
 			Player player = world.getPlayerManager().getPlayer(peer.getPlayerId());
@@ -242,7 +242,7 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 	
 	@Override
 	public void becameReadyToReceiveSnapshots(ClientPeer peer) {
-		World world = this.getWorldIfReady();
+		GameWorld world = this.getWorldIfReady();
 		
 		if (world != null) {
 			for (Entity entity : world.getEntityManager().getEntites()) {
@@ -318,8 +318,8 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 	}
 	
 	@Override
-	protected World createWorld(ObjectMap<String, String> informations) {
-		World world = super.createWorld(informations);
+	protected GameWorld createWorld(ObjectMap<String, String> informations) {
+		GameWorld world = super.createWorld(informations);
 		
 		world.setHasAuthority(true);
 		world.setRenderingEnabled(this.renderingEnabled);
@@ -329,7 +329,7 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 	}
 	
 	final private void addPlayer(ClientPeer client) {
-		World world = this.getWorldIfReady();
+		GameWorld world = this.getWorldIfReady();
 		
 		if (world != null) {
 			world.getPlayerManager().addPlayer(client.getPlayerId(), client.getName());
