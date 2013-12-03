@@ -1,9 +1,12 @@
 package net.kerious.engine.player;
 
 import net.kerious.engine.entity.Entity;
+import net.kerious.engine.gamecontroller.AnalogPad;
 import net.kerious.engine.gamecontroller.GameController;
 import net.kerious.engine.utils.Controller;
 import net.kerious.engine.world.GameWorld;
+
+import com.badlogic.gdx.utils.Array;
 
 public abstract class Player extends Controller<PlayerModel> {
 
@@ -54,7 +57,7 @@ public abstract class Player extends Controller<PlayerModel> {
 	 */
 	public void update(float deltaTime) {
 		if (this.gameController != null) {
-			this.handleCommand(this.gameController.getDirectionAngle(), this.gameController.getDirectionStrength(), this.gameController.getActions());
+			this.handleCommand(this.gameController.getAnalogPads(), this.gameController.getActions());
 		}
 	}
 	
@@ -64,7 +67,7 @@ public abstract class Player extends Controller<PlayerModel> {
 	 * @param directionStrength
 	 * @param actions
 	 */
-	abstract public void handleCommand(float directionAngle, float directionStrength, long actions);
+	abstract public void handleCommand(Array<AnalogPad> analogPads, long actions);
 	
 	abstract public void gainedEntityOwnership(Entity entity);
 	

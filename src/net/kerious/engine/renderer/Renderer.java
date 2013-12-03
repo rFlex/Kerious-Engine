@@ -17,6 +17,8 @@ public interface Renderer extends Disposable {
 	void initialize();
 	void render(View view);
 	
+	void setWindowSize(float width, float height);
+	
 	float getWindowWidth();
 	float getWindowHeight();
 	

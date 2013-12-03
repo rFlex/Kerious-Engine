@@ -65,6 +65,7 @@ public class ClientPeer extends KeriousProtocolPeer {
 			case ConnectionPacket.ConnectionAsk:
 				// Send the accepted packet
 				ConnectionPacket acceptedConnectionPacket = this.protocol.createConnectionPacket(ConnectionPacket.ConnectionAccepted);
+				acceptedConnectionPacket.playerId = this.playerId;
 				this.send(acceptedConnectionPacket);
 				acceptedConnectionPacket.release();
 				break;
@@ -106,8 +107,7 @@ public class ClientPeer extends KeriousProtocolPeer {
 			CommandPacket commandPacket = (CommandPacket)packet;
 			
 			if (this.delegate != null) {
-				this.delegate.updateWorldWithCommands(this, commandPacket.directionAngle,
-						commandPacket.directionStrength, commandPacket.actionsBitfield);
+				this.delegate.updateWorldWithCommands(this, commandPacket.analogPads, commandPacket.actionsBitfield);
 			}
 		break;
 		

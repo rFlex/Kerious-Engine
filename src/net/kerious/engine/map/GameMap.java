@@ -32,6 +32,7 @@ public class GameMap {
 	private TiledMapRenderer renderer;
 	private TiledMap tiledMap;
 	private Array<MapLayerView> layersView;
+	private float metersToPixelsRatio;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -39,6 +40,7 @@ public class GameMap {
 	
 	public GameMap() {
 		this.layersView = new Array<MapLayerView>();
+		this.setMetersToPixelsRatio(16);
 	}
 
 	////////////////////////
@@ -106,5 +108,19 @@ public class GameMap {
 
 	public void setTiledMap(TiledMap tiledMap) {
 		this.tiledMap = tiledMap;
+	}
+
+	public float getMetersToPixelsRatio() {
+		return metersToPixelsRatio;
+	}
+
+	public void setMetersToPixelsRatio(float metersPointsSize) {
+		this.metersToPixelsRatio = metersPointsSize;
+
+		Array<MapLayerView> layersView = this.layersView;
+		for (int i = 0, length = layersView.size; i < length; i++) {
+			MapLayerView layerView = layersView.items[i];
+			layerView.resizeToFit();
+		}
 	}
 }

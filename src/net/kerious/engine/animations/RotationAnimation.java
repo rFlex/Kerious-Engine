@@ -9,11 +9,10 @@
 
 package net.kerious.engine.animations;
 
-import com.badlogic.gdx.utils.Pool;
-
 import net.kerious.engine.view.View;
 
-@SuppressWarnings("unused")
+import com.badlogic.gdx.utils.Pool;
+
 public class RotationAnimation extends TemporalAnimation {
 
 	
@@ -45,7 +44,9 @@ public class RotationAnimation extends TemporalAnimation {
 	
 	@Override
 	protected void applyToView(View view, float currentRatio) {
+		float currentRotation = this.startRotation + (this.endRotation - this.startRotation) * currentRatio;
 		
+		view.setRenderingRotation(currentRotation);
 	}
 
 	@Override
@@ -64,4 +65,12 @@ public class RotationAnimation extends TemporalAnimation {
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
+	
+	public void setEndRotation(float rotation) {
+		this.endRotation = rotation;
+	}
+	
+	public float getEndRotation() {
+		return this.endRotation;
+	}
 }

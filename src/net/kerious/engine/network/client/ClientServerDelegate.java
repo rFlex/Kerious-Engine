@@ -9,12 +9,15 @@
 
 package net.kerious.engine.network.client;
 
+import net.kerious.engine.gamecontroller.AnalogPad;
+
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
 
 public interface ClientServerDelegate {
 	
 	void fillWorldInformations(ClientPeer peer, ObjectMap<String, String> informations);
-	void updateWorldWithCommands(ClientPeer peer, float directionAngle, float directionStrength, long actions);
+	void updateWorldWithCommands(ClientPeer peer, Array<AnalogPad> analogPads, long actions);
 	void becameReadyToReceiveSnapshots(ClientPeer peer);
 
 }

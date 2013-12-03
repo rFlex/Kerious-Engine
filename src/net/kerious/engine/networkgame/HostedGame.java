@@ -18,6 +18,7 @@ import net.kerious.engine.console.Console;
 import net.kerious.engine.console.DoubleConsoleCommand;
 import net.kerious.engine.console.IntegerConsoleCommand;
 import net.kerious.engine.entity.Entity;
+import net.kerious.engine.gamecontroller.AnalogPad;
 import net.kerious.engine.network.client.ClientPeer;
 import net.kerious.engine.network.client.ClientServerDelegate;
 import net.kerious.engine.network.protocol.KeriousProtocolPeer;
@@ -33,6 +34,7 @@ import net.kerious.engine.world.event.Event;
 import net.kerious.engine.world.event.EventManager;
 import net.kerious.engine.world.event.EventManagerListener;
 import net.kerious.engine.world.event.Events;
+import net.kerious.engine.world.event.PlayerJoinedEvent;
 
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntMap;
@@ -229,13 +231,13 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 	}
 	
 	@Override
-	public void updateWorldWithCommands(ClientPeer peer, float directionAngle, float directionStrength, long actions) {
+	public void updateWorldWithCommands(ClientPeer peer, Array<AnalogPad> analogPads, long actions) {
 		GameWorld world = this.getWorldIfReady();
 		
 		if (world != null) {
 			Player player = world.getPlayerManager().getPlayer(peer.getPlayerId());
 			if (player != null) {
-				player.handleCommand(directionAngle, directionStrength, actions);
+				player.handleCommand(analogPads, actions);
 			}
 		}
 	}
@@ -245,6 +247,17 @@ public abstract class HostedGame extends Game implements ClientServerDelegate, E
 		GameWorld world = this.getWorldIfReady();
 		
 		if (world != null) {
+			for (Player player : world.getPlayerManager().getPlayers()) {
+				PlayerJoinedEvent playerJoinedEvent = (PlayerJoinedEvent)world.getEventManager().createEvent(Events.PlayerJoined);
+				
+				playerJoinedEvent.playerId = player.getId();
+				playerJoinedEvent.name = player.getName();
+				
+				peer.sendEvent(playerJoinedEvent);
+				
+				playerJoinedEvent.release();
+			}
+			
 			for (Entity entity : world.getEntityManager().getEntites()) {
 				EntityCreatedEvent entityCreatedEvent = (EntityCreatedEvent)world.getEventManager().createEvent(Events.EntityCreated);
 				

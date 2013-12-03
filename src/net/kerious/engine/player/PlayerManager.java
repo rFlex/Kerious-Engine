@@ -10,6 +10,7 @@
 package net.kerious.engine.player;
 
 import me.corsin.javatools.misc.NullArgumentException;
+import net.kerious.engine.KeriousException;
 import net.kerious.engine.utils.ControllerFactory;
 import net.kerious.engine.world.event.Event;
 import net.kerious.engine.world.event.EventListener;
@@ -31,8 +32,9 @@ public class PlayerManager extends ControllerFactory<Player, PlayerModel>
 	
 	final private IntMap<Player> players;
 	final private SnapshotArray<Player> playersAsArray;
+	private Class<?> playerClass;
+	private Class<?> playerModelClass;
 	private PlayerManagerListener listener;
-	private PlayerManagerDelegate delegate;
 	private EventManager eventManager;
 
 	////////////////////////
@@ -42,8 +44,9 @@ public class PlayerManager extends ControllerFactory<Player, PlayerModel>
 	public PlayerManager() {
 		this.players = new IntMap<Player>();
 		this.playersAsArray = new SnapshotArray<Player>(true, 32, Player.class);
-		
-		this.setDelegate(null);
+
+		this.setPlayerClass(null);
+		this.setPlayerModelClass(null);
 	}
 
 	////////////////////////
@@ -67,13 +70,13 @@ public class PlayerManager extends ControllerFactory<Player, PlayerModel>
 			this.eventManager.addListener(Events.PlayerJoined, new EventListener() {
 				public void onEventFired(EventManager eventManager, Event event) {
 					PlayerJoinedEvent playerJoinedEvent = (PlayerJoinedEvent)event;
-					addPlayer(playerJoinedEvent.id, playerJoinedEvent.name);
+					addPlayer(playerJoinedEvent.playerId, playerJoinedEvent.name);
 				}
 			});
 			this.eventManager.addListener(Events.PlayerLeft, new EventListener() {
 				public void onEventFired(EventManager eventManager, Event event) {
 					PlayerLeftEvent playerLeftEvent = (PlayerLeftEvent)event;
-					removePlayer(playerLeftEvent.id, playerLeftEvent.reason);
+					removePlayer(playerLeftEvent.playerId, playerLeftEvent.reason);
 				}
 			});
 		}
@@ -114,7 +117,7 @@ public class PlayerManager extends ControllerFactory<Player, PlayerModel>
 		this.playersAsArray.add(player);
 		
 		if (this.eventManager.canGenerateEvent()) {
-			PlayerJoinedEvent.createAndFire(this.eventManager, model.id);
+			PlayerJoinedEvent.createAndFire(this.eventManager, id, name);
 		}
 		
 		if (this.listener != null) {
@@ -166,17 +169,50 @@ public class PlayerManager extends ControllerFactory<Player, PlayerModel>
 	
 	@Override
 	protected Player newController() {
-		return this.delegate.newPlayerController();
+		try {
+			return (Player) this.playerClass.newInstance();
+		} catch (Exception e) {
+			throw new KeriousException("Failed to instantiate Player", e);
+		}
 	}
 
 	@Override
 	protected PlayerModel newModel() {
-		return this.delegate.newPlayerModel();
+		try {
+			return (PlayerModel) this.playerModelClass.newInstance();
+		} catch (Exception e) {
+			throw new KeriousException("Failed to instantiate PlayerModel", e);
+		}
+		
 	}
 
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
+	
+	public <T extends Player> void setPlayerClass(Class<T> playerClass) {
+		if (playerClass == null) {
+			this.playerClass = DummyPlayer.class;
+		} else {
+			this.playerClass = playerClass;
+		}
+	}
+	
+	public Class<?> getPlayerClass() {
+		return this.playerClass;
+	}
+	
+	public <T extends PlayerModel> void setPlayerModelClass(Class<T> playerModelClass) {
+		if (playerModelClass == null) {
+			this.playerModelClass = PlayerModel.class;
+		} else {
+			this.playerModelClass = playerModelClass;
+		}
+	}
+	
+	public Class<?> getPlayerModelClass() {
+		return this.playerModelClass;
+	}
 	
 	public PlayerManagerListener getListener() {
 		return listener;
@@ -192,29 +228,6 @@ public class PlayerManager extends ControllerFactory<Player, PlayerModel>
 	
 	public int getPlayersCount() {
 		return this.players.size;
-	}
-
-	/**
-	 * Get the delegate that is responsible for creating players and player models
-	 * @return
-	 */
-	public PlayerManagerDelegate getDelegate() {
-		return delegate;
-	}
-
-	/**
-	 * Change the delegate that is responsible for creating players and player models
-	 * If you want to create your own players and player model you are in the good place!
-	 * Passing null will automatically set a delegate that creates dummy players
-	 * (who don't have any logic implemented) and creates the built-in default PlayerModel models
-	 * @param delegate
-	 */
-	public void setDelegate(PlayerManagerDelegate delegate) {
-		if (delegate == null) {
-			delegate = new DummyPlayerManagerDelegate();
-		}
-		
-		this.delegate = delegate;
 	}
 
 }

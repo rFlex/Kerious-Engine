@@ -1,6 +1,9 @@
 package net.kerious.engine.player;
 
+import com.badlogic.gdx.utils.Array;
+
 import net.kerious.engine.entity.Entity;
+import net.kerious.engine.gamecontroller.AnalogPad;
 
 public class DummyPlayer extends Player {
 
@@ -31,11 +34,6 @@ public class DummyPlayer extends Player {
 	}
 
 	@Override
-	public void handleCommand(float directionAngle, float directionStrength, long actions) {
-		
-	}
-
-	@Override
 	public void gainedEntityOwnership(Entity entity) {
 		
 	}
@@ -52,6 +50,11 @@ public class DummyPlayer extends Player {
 
 	@Override
 	public void disconnected() {
+		
+	}
+
+	@Override
+	public void handleCommand(Array<AnalogPad> analogPads, long actions) {
 		
 	}
 

@@ -25,6 +25,7 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
+import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Array;
 
 public abstract class Entity extends Controller<EntityModel> implements TemporaryUpdatable {
@@ -38,6 +39,7 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 	private EntityManager entityManager;
 	private GameWorld world;
 	private View view;
+	private int currentPlayerId;
 	private int currentSkinId;
 	private boolean shouldBeRemoved;
 	private boolean destroyWhenRemoved;
@@ -95,8 +97,10 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 	 * Update the Entity's view so it matches the model
 	 */
 	public void updateView() {
-		if (view != null) {
-			view.setFrame(model.x, model.y, model.width, model.height);
+		GameWorld world = this.world;
+		if (view != null && world != null) {
+			float pointsSize = world.getMetersToPixelsRatio();
+			view.setFrame(model.x * pointsSize, model.y * pointsSize, model.width * pointsSize, model.height * pointsSize);
 		}
 	}
 	
@@ -117,6 +121,22 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 		}
 		
 		return null;
+	}
+	
+	/**
+	 * Update the Entity's player so it matches its EntityModel
+	 */
+	final public void updatePlayer() {
+		if (this.model != null) {
+			int playerId = this.model.playerId;
+			
+			if (this.currentPlayerId != playerId) {
+				Player player = this.world.getPlayerManager().getPlayer(playerId);
+				this.setPlayer(player);
+			}
+		} else {
+			this.setPlayer(null);
+		}
 	}
 	
 	/**
@@ -167,6 +187,7 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 	protected void modelChanged() {
 		this.updateParent();
 		this.matchPhysicsWithModel();
+		this.updatePlayer();
 		this.updateSkin();
 		this.updateView();
 	}
@@ -271,11 +292,11 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 	 * @param physicsWorld
 	 * @return
 	 */
-	protected Body createPhysicsBodyWithWorld(com.badlogic.gdx.physics.box2d.World physicsWorld, float worldToPhysicsRatio) {
-		float x = this.model.x * worldToPhysicsRatio;
-		float y = this.model.y * worldToPhysicsRatio;
-		float widthRadius = this.model.width * worldToPhysicsRatio / 2f;
-		float heightRadius = this.model.height * worldToPhysicsRatio / 2f;
+	protected Body createPhysicsBodyWithWorld(com.badlogic.gdx.physics.box2d.World physicsWorld) {
+		float x = this.model.x;
+		float y = this.model.y;
+		float widthRadius = this.model.width / 2f;
+		float heightRadius = this.model.height / 2f;
 		
 		tmpBodyDef.type = BodyType.DynamicBody;
 		tmpBodyDef.position.x = x;
@@ -316,8 +337,8 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 		GameWorld world = this.world;
 		
 		if (world != null) {
-			com.badlogic.gdx.physics.box2d.World physicsWorld = world.getPhysicsWorld();
-			this.physicsBody = this.createPhysicsBodyWithWorld(physicsWorld, world.getWorldToPhysicsRatio());
+			World physicsWorld = world.getPhysicsWorld();
+			this.physicsBody = this.createPhysicsBodyWithWorld(physicsWorld);
 			
 			if (this.physicsBody != null) {
 				this.physicsBody.setUserData(this);
@@ -337,9 +358,7 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 		GameWorld world = this.world;
 		
 		if (body != null && world != null) {
-			float transformRatio = world.getWorldToPhysicsRatio();
-			
-			body.setTransform(this.model.x * transformRatio, this.model.y * transformRatio, body.getAngle());
+			body.setTransform(this.model.x, this.model.y, body.getAngle());
 		}
 	}
 	
@@ -353,11 +372,9 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 		GameWorld world = this.world;
 		
 		if (body != null && world != null) {
-			float transformRatio = world.getPhysicsToWorldRatio();
-			
 			Vector2 position = body.getPosition();
-			this.model.x = position.x * transformRatio;
-			this.model.y = position.y * transformRatio;
+			this.model.x = position.x;
+			this.model.y = position.y;
 		}
 	}
 
@@ -545,7 +562,8 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 			Player oldPlayer = this.player;
 			
 			this.player = player;
-			this.model.playerId = player.getId();
+			this.model.playerId = player != null ? player.getId() : 0;
+			this.currentPlayerId = this.model.playerId;
 			
 			if (oldPlayer != null) {
 				oldPlayer.lostEntityOwnership(this);

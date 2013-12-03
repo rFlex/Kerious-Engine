@@ -9,14 +9,15 @@
 
 package net.kerious.engine;
 
-import com.badlogic.gdx.ApplicationListener;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
-
 import me.corsin.javatools.reflect.ReflectionUtils;
 import net.kerious.engine.input.LibgdxInputManager;
 import net.kerious.engine.renderer.LibgdxRenderer;
 import net.kerious.engine.resource.ResourceManager;
+import net.kerious.engine.view.View;
+
+import com.badlogic.gdx.ApplicationListener;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
 
 public class KeriousEngineLibgdx extends KeriousEngine implements ApplicationListener {
 
@@ -54,7 +55,12 @@ public class KeriousEngineLibgdx extends KeriousEngine implements ApplicationLis
 
 	@Override
 	public void resize(int width, int height) {
+		this.getRenderer().setWindowSize(width, height);
 		
+		View keyView = this.getKeyView();
+		if (keyView != null) {
+			keyView.setFrame(0, 0, width, height);
+		}
 	}
 
 	@Override

@@ -18,6 +18,7 @@ import net.kerious.engine.KeriousException;
 import net.kerious.engine.entity.EntityException;
 import net.kerious.engine.entity.model.EntityModel;
 import net.kerious.engine.entity.model.EntityModelCreator;
+import net.kerious.engine.gamecontroller.AnalogPad;
 import net.kerious.engine.network.protocol.packet.CommandPacket;
 import net.kerious.engine.network.protocol.packet.ConnectionPacket;
 import net.kerious.engine.network.protocol.packet.InformationPacket;
@@ -29,24 +30,34 @@ import net.kerious.engine.network.protocol.packet.WorldInformationsPacket;
 import net.kerious.engine.player.PlayerModel;
 import net.kerious.engine.player.PlayerModelCreator;
 import net.kerious.engine.utils.FactoryManager;
+import net.kerious.engine.world.WorldObjectDatabase;
 import net.kerious.engine.world.event.Event;
 import net.kerious.engine.world.event.EventCreator;
+
+import com.badlogic.gdx.utils.Array;
 
 public class KeriousProtocol extends FactoryManager implements INetworkProtocol {
 
 	////////////////////////
 	// VARIABLES
 	////////////////
-	
+
+	private Pool<AnalogPad> pads;
 	private EntityModelCreator entityModelCreator;
 	private EventCreator eventCreator;
 	private PlayerModelCreator playerCreator;
+	private WorldObjectDatabase worldDatabase;
 
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 	
 	public KeriousProtocol() {
+		this.pads = new Pool<AnalogPad>() {
+			protected AnalogPad instantiate() {
+				return new AnalogPad();
+			}
+		};
 		this.initPackets();
 	}
 
@@ -117,11 +128,20 @@ public class KeriousProtocol extends FactoryManager implements INetworkProtocol 
 		return packet;
 	}
 	
-	final public CommandPacket createCommandPacket(float directionAngle, float directionStrength, long actionsBitfield) {
+	final public AnalogPad createAnalogPad() {
+		return this.pads.obtain();
+	}
+	
+	final public CommandPacket createCommandPacket(Array<AnalogPad> pads, long actionsBitfield) {
 		CommandPacket packet = (CommandPacket)this.createPacket(KeriousPacket.TypeCommand);
 		
-		packet.directionAngle = directionAngle;
-		packet.directionStrength = directionStrength;
+		AnalogPad[] analogPads = pads.items;
+		for (int i = 0, length = pads.size; i < length; i++) {
+			AnalogPad analogPad = analogPads[i];
+			analogPad.retain();
+			packet.analogPads.add(analogPad);
+		}
+		
 		packet.actionsBitfield = actionsBitfield;
 		
 		return packet;
@@ -208,5 +228,13 @@ public class KeriousProtocol extends FactoryManager implements INetworkProtocol 
 
 	public void setPlayerCreator(PlayerModelCreator playerCreator) {
 		this.playerCreator = playerCreator;
+	}
+
+	public WorldObjectDatabase getWorldDatabase() {
+		return worldDatabase;
+	}
+
+	public void setWorldDatabase(WorldObjectDatabase worldDatabase) {
+		this.worldDatabase = worldDatabase;
 	}
 }

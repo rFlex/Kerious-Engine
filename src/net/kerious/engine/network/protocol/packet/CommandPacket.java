@@ -3,16 +3,16 @@ package net.kerious.engine.network.protocol.packet;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import net.kerious.engine.gamecontroller.AnalogPad;
 import net.kerious.engine.network.protocol.KeriousProtocol;
+
+import com.badlogic.gdx.utils.Array;
 
 public class CommandPacket extends KeriousPacket {
 	
 	////////////////////////
 	// VARIABLES
 	////////////////
-	
-	public float directionAngle;
-	public float directionStrength;
 	
 	/**
 	 * This contains up to 32 actions on the CommandPacket
@@ -21,6 +21,8 @@ public class CommandPacket extends KeriousPacket {
 	 * if the bit is at 1.
 	 */
 	public long actionsBitfield;
+	
+	public Array<AnalogPad> analogPads;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -28,6 +30,8 @@ public class CommandPacket extends KeriousPacket {
 
 	public CommandPacket() {
 		super(TypeCommand);
+		
+		this.analogPads = new Array<AnalogPad>(AnalogPad.class);
 	}
 
 	////////////////////////
@@ -38,26 +42,40 @@ public class CommandPacket extends KeriousPacket {
 	public void deserialize(KeriousProtocol protocol, ByteBuffer buffer) throws IOException {
 		super.deserialize(protocol, buffer);
 		
-		this.directionAngle = buffer.getFloat();
-		this.directionStrength = buffer.getFloat();
 		this.actionsBitfield = buffer.getLong();
+		
+		int size = buffer.getInt();
+		for (int i = 0; i < size; i++) {
+			AnalogPad pad = protocol.createAnalogPad();
+			pad.deserialize(protocol, buffer);
+			this.analogPads.add(pad);
+		}
+		
 	}
 	
 	@Override
 	public void serialize(KeriousProtocol protocol, ByteBuffer buffer) {
 		super.serialize(protocol, buffer);
 		
-		buffer.putFloat(this.directionAngle);
-		buffer.putFloat(this.directionStrength);
 		buffer.putLong(this.actionsBitfield);
+
+		buffer.putInt(this.analogPads.size);
+		AnalogPad[] pads = this.analogPads.items;
+		for (int i = 0, length = this.analogPads.size; i < length; i++) {
+			pads[i].serialize(protocol, buffer);
+		}
 	}
 	
 	@Override
 	public void reset() {
 		super.reset();
 		
-		this.directionAngle = 0;
-		this.directionStrength = 0;
+		AnalogPad[] pads = this.analogPads.items;
+		for (int i = 0, length = this.analogPads.size; i < length; i++) {
+			pads[i].release();
+			pads[i] = null;
+		}
+		
 		this.actionsBitfield = 0;
 	}
 

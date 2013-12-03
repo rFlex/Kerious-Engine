@@ -12,10 +12,11 @@ package net.kerious.engine.gamecontroller;
 import net.kerious.engine.KeriousException;
 import net.kerious.engine.input.KeyboardResponder;
 import net.kerious.engine.network.protocol.KeriousProtocol;
-import net.kerious.engine.network.protocol.packet.KeriousPacket;
+import net.kerious.engine.network.protocol.packet.CommandPacket;
 import net.kerious.engine.networkgame.CommandPacketCreator;
 
 import com.badlogic.gdx.Input.Keys;
+import com.badlogic.gdx.utils.Array;
 
 public class GameController implements KeyboardResponder, CommandPacketCreator {
 
@@ -25,17 +26,21 @@ public class GameController implements KeyboardResponder, CommandPacketCreator {
 	
 	public static final int Unbound = -1;
 
+	private Array<AnalogPad> analogPads;
 	private float directionAngle;
 	private float directionStrength;
 	private int[] binds;
-	private long enableActions;
+	private KeyListener[] listeners;
+	private long actions;
 
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
 	
 	public GameController() {
+		this.analogPads = new Array<AnalogPad>(AnalogPad.class);
 		this.binds = new int[Keys.F12 + 1];
+		this.listeners = new KeyListener[this.binds.length];
 		
 		for (int i = 0; i < this.binds.length; i++) {
 			this.binds[i] = Unbound;
@@ -53,11 +58,11 @@ public class GameController implements KeyboardResponder, CommandPacketCreator {
 
 	@Override
 	public void onResignedResponder() {
-		
+		this.actions = 0;
 	}
 	
 	final private void checkKeycode(int keycode) {
-		if (keycode > this.binds.length || keycode < 0) {
+		if (keycode >= this.binds.length || keycode < 0) {
 			throw new KeriousException("keycode out of bound (" + keycode + ")");
 		}
 	}
@@ -80,18 +85,26 @@ public class GameController implements KeyboardResponder, CommandPacketCreator {
 	@Override
 	public void onKeyDown(int keycode) {
 		int action = this.binds[keycode];
+		KeyListener listener = this.listeners[keycode];
 		
 		if (action != Unbound) {
-			this.enableActions |= (long)0x1 << action;
+			this.actions |= (long)0x1 << action;
+		}
+		if (listener != null) {
+			listener.onKeyPressed(this, keycode);
 		}
 	}
 
 	@Override
 	public void onKeyUp(int keycode) {
 		int action = this.binds[keycode];
+		KeyListener listener = this.listeners[keycode];
 
 		if (action != Unbound) {
-			this.enableActions &= ~((long)0x1 << action);
+			this.actions &= ~((long)0x1 << action);
+		}
+		if (listener != null) {
+			listener.onKeyReleased(this, keycode);
 		}
 	}
 
@@ -100,16 +113,43 @@ public class GameController implements KeyboardResponder, CommandPacketCreator {
 		
 	}
 	
-	public KeriousPacket generateCommandPacket(KeriousProtocol protocol) {
-		return protocol.createCommandPacket(this.directionAngle, this.directionStrength, this.enableActions);
+	@Override
+	public CommandPacket generateCommandPacket(KeriousProtocol protocol) {
+		return protocol.createCommandPacket(this.analogPads, this.actions);
+	}
+	
+	/**
+	 * Create and add an analog pad.
+	 * Pads are sent through the network
+	 * @return the created analog pad
+	 */
+	public AnalogPad addAnalogPad() {
+		AnalogPad pad = new AnalogPad();
+		
+		this.analogPads.add(pad);
+		
+		return pad;
+	}
+	
+	public void setKeyListener(int keycode, KeyListener keyEventListener) {
+		this.checkKeycode(keycode);
+		this.listeners[keycode] = keyEventListener;
 	}
 
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
 	
+	public AnalogPad getAnalogPad(int index) {
+		return this.analogPads.get(index);
+	}
+	
+	public Array<AnalogPad> getAnalogPads() {
+		return this.analogPads;
+	}
+	
 	public long getActions() {
-		return this.enableActions;
+		return this.actions;
 	}
 	
 	public float getDirectionAngle() {
@@ -133,4 +173,5 @@ public class GameController implements KeyboardResponder, CommandPacketCreator {
 		
 		this.directionStrength = directionStrength;
 	}
+
 }

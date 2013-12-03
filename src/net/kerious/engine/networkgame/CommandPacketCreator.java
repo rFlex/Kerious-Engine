@@ -1,10 +1,10 @@
 package net.kerious.engine.networkgame;
 
 import net.kerious.engine.network.protocol.KeriousProtocol;
-import net.kerious.engine.network.protocol.packet.KeriousPacket;
+import net.kerious.engine.network.protocol.packet.CommandPacket;
 
 public interface CommandPacketCreator {
 
-	KeriousPacket generateCommandPacket(KeriousProtocol protocol);
+	CommandPacket generateCommandPacket(KeriousProtocol protocol);
 	
 }

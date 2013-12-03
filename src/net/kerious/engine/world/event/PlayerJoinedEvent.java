@@ -47,10 +47,11 @@ public class PlayerJoinedEvent extends PlayerEvent {
 		this.name = null;
 	}
 	
-	public static void createAndFire(EventManager eventManager, int playerId) {
+	public static void createAndFire(EventManager eventManager, int playerId, String name) {
 		PlayerJoinedEvent playerJoinedEvent = (PlayerJoinedEvent)eventManager.createEvent(Events.PlayerJoined);
 		
 		playerJoinedEvent.playerId = playerId;
+		playerJoinedEvent.name = name;
 		
 		fire(eventManager, playerJoinedEvent);
 	}

@@ -17,6 +17,9 @@ public class NullRenderer implements Renderer {
 	// VARIABLES
 	////////////////
 	
+	private float windowWidth;
+	private float windowHeight;
+	
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
@@ -55,12 +58,12 @@ public class NullRenderer implements Renderer {
 
 	@Override
 	public float getWindowWidth() {
-		return 0;
+		return this.windowWidth;
 	}
 
 	@Override
 	public float getWindowHeight() {
-		return 0;
+		return this.windowHeight;
 	}
 
 	@Override
@@ -71,5 +74,11 @@ public class NullRenderer implements Renderer {
 	@Override
 	public boolean isDrawingContextAvailable() {
 		return false;
+	}
+
+	@Override
+	public void setWindowSize(float width, float height) {
+		this.windowWidth = width;
+		this.windowHeight = height;
 	}
 }

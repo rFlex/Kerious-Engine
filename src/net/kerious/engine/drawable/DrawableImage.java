@@ -27,6 +27,10 @@ public class DrawableImage implements Drawable {
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
+
+	public DrawableImage(TextureRegion textureRegion) {
+		this.setTextureRegion(textureRegion);
+	}
 	
 	public DrawableImage(Texture texture) {
 		this.setTextureRegion(new TextureRegion(texture));

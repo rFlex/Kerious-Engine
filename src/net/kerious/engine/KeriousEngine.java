@@ -129,6 +129,10 @@ public abstract class KeriousEngine implements Disposable {
 	public void setKeyView(View keyView) {
 		this.keyView = keyView;
 		this.inputManager.setTouchResponder(keyView);
+		
+		if (keyView != null) {
+			keyView.setFrame(0, 0, this.renderer.getWindowWidth(), this.renderer.getWindowHeight());
+		}
 	}
 
 	public InputManager getInputManager() {

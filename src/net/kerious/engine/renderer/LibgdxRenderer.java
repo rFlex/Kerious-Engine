@@ -47,7 +47,7 @@ public class LibgdxRenderer implements Renderer {
 		
 		this.drawingContext.beginBatch();
 		if (view != null) {
-			view.draw(this.drawingContext, 0, 0, 1, 1, 1);
+			view.draw(this.drawingContext, 0, 0, 1);
 		}
 		this.drawingContext.endBatch();
 	}
@@ -92,6 +92,13 @@ public class LibgdxRenderer implements Renderer {
 	@Override
 	public boolean isDrawingContextAvailable() {
 		return true;
+	}
+
+	@Override
+	public void setWindowSize(float width, float height) {
+		if (this.drawingContext != null) {
+			this.drawingContext.updateProjectionFromWindowSize();
+		}
 	}
 
 }

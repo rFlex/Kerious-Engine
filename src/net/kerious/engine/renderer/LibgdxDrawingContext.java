@@ -42,14 +42,18 @@ public class LibgdxDrawingContext implements DrawingContext {
 		this.spriteBatch = new SpriteBatch();
 		this.shapeRenderer = new ShapeRenderer();
 		this.projectionMatrix = new Matrix4();
-		
-		this.setProjection(new Projection((float)Gdx.graphics.getWidth(), (float)Gdx.graphics.getHeight()));
+
+		this.updateProjectionFromWindowSize();
 	}
 
 	////////////////////////
 	// METHODS
 	////////////////
 
+	public void updateProjectionFromWindowSize() {
+		this.setProjection(new Projection((float)Gdx.graphics.getWidth(), (float)Gdx.graphics.getHeight()));
+	}
+	
 	final public void beginBatch() {
 		if (!this.spriteBatchDrawing) {
 			this.spriteBatchDrawing = true;

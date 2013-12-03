@@ -12,6 +12,7 @@ package net.kerious.engine.view;
 import me.corsin.javatools.misc.PoolableImpl;
 import net.kerious.engine.animations.Animation;
 import net.kerious.engine.animations.ChangeFrameAnimation;
+import net.kerious.engine.animations.RotationAnimation;
 import net.kerious.engine.drawable.Drawable;
 import net.kerious.engine.input.TouchResponder;
 import net.kerious.engine.renderer.DrawingContext;
@@ -31,21 +32,14 @@ public class View extends PoolableImpl implements TouchResponder {
 	// VARIABLES
 	////////////////
 	
-	final public static int ORIGIN_BOTTOM_LEFT = 0;
-	final public static int ORIGIN_BOTTOM_RIGHT = 1;
-	final public static int ORIGIN_TOP_LEFT = 2;
-	final public static int ORIGIN_TOP_RIGHT = 3;
-	final public static int ORIGIN_CENTER = 4;
-	final public static int ORIGIN_CUSTOM = 5;
-	
 	final private static Color tmpColor = new Color();
 	
 	final private SnapshotArray<View> views;
 	final private Color tint;
 	final private Rectangle screenFrame;
 	
-	final private Matrix3 localTransformMatrix;
-	final private Matrix3 drawingTransformMatrix;
+	final protected Matrix3 localTransformMatrix;
+	final protected Matrix3 drawingTransformMatrix;
 	final private Matrix4 contextTransformMatrix;
 	final private Matrix4 savedTransformMatrix;
 	
@@ -56,12 +50,7 @@ public class View extends PoolableImpl implements TouchResponder {
 	private Drawable background;
 	private View parentView;
 	private float rotation;
-	private float projectionRatioX;
-	private float projectionRatioY;
-	private float originX;
-	private float originY;
-	private float parentProjectionRatioX;
-	private float parentProjectionRatioY;
+	private float renderingRotation;
 	private float parentX;
 	private float parentY;
 	private boolean hidden;
@@ -70,7 +59,6 @@ public class View extends PoolableImpl implements TouchResponder {
 	private boolean transformMatrixDirty;
 	private boolean wasDrawn;
 	private boolean touchEnabled;
-	private int originType;
 	
 	// Animations
 	private static boolean animationStarted;
@@ -80,6 +68,7 @@ public class View extends PoolableImpl implements TouchResponder {
 	private static Runnable animationCompletionHandler;
 	
 	private ChangeFrameAnimation changedFrameAnimation;
+	private RotationAnimation changedRotationAnimation;
 
 	////////////////////////
 	// CONSTRUCTORS
@@ -97,9 +86,6 @@ public class View extends PoolableImpl implements TouchResponder {
 		this.contextTransformMatrix = new Matrix4();
 		this.savedTransformMatrix = new Matrix4();
 		this.animations = new SnapshotArray<Animation>(false, 4, Animation.class);
-		this.projectionRatioX = 1;
-		this.projectionRatioY = 1;
-		this.originType = ORIGIN_BOTTOM_LEFT;
 		this.touchEnabled = true;
 	}
 
@@ -117,60 +103,32 @@ public class View extends PoolableImpl implements TouchResponder {
 		
 	}
 	
-	final private Matrix3 computeTransformMatrix(float renderingFrameX, float renderingFrameY,
+	final private Matrix3 computeTransformMatrix(Matrix3 currentTransformMatrix, float renderingFrameX, float renderingFrameY,
 			float renderingFrameWidth, float renderingFrameHeight) {
+		
+		float rotation = this.renderingRotation;
 		if (this.transformMatrixDirty) {
-			boolean originChanged = this.originType != ORIGIN_BOTTOM_LEFT;
-			float transformOriginX = 0;
-			float transformOriginY = 0;
-			
-			if (originChanged) {
-				switch (this.originType) {
-				case ORIGIN_BOTTOM_RIGHT:
-					transformOriginX = renderingFrameWidth;
-					break;
-				case ORIGIN_TOP_LEFT:
-					transformOriginY = renderingFrameHeight;
-					break;
-				case ORIGIN_TOP_RIGHT:
-					transformOriginX = renderingFrameWidth;
-					transformOriginY = renderingFrameHeight;
-					break;
-				case ORIGIN_CENTER:
-					transformOriginX = renderingFrameWidth * 0.5f;
-					transformOriginY = renderingFrameHeight * 0.5f;
-					break;
-				case ORIGIN_CUSTOM:
-					transformOriginX = this.originX;
-					transformOriginY = this.originY;
-					break;
-				}
-				this.localTransformMatrix.setToTranslation(transformOriginX, transformOriginY);
-			} else {
-				this.localTransformMatrix.idt();
-			}
+			if (rotation != 0) {
+				float transformOriginX = renderingFrameWidth * 0.5f;
+				float transformOriginY = renderingFrameHeight * 0.5f;
 
-			if (this.rotation != 0) {
-				this.localTransformMatrix.rotate(this.rotation);
-			}
-			
-			if (this.projectionRatioX != 1 || this.projectionRatioY != 1) {
-				this.localTransformMatrix.scale(this.projectionRatioX, this.projectionRatioY);
-			}
-			
-			if (originChanged) {
+				this.localTransformMatrix.setToTranslation(transformOriginX, transformOriginY);
+				this.localTransformMatrix.rotate(rotation);
 				this.localTransformMatrix.translate(-transformOriginX, -transformOriginY);
+				
+				this.localTransformMatrix.trn(renderingFrameX, renderingFrameY);
+			} else {
+				this.localTransformMatrix.setToTranslation(renderingFrameX, renderingFrameY);
 			}
 			
-			this.localTransformMatrix.trn(renderingFrameX, renderingFrameY);
 			this.transformMatrixDirty = false;
 		}
 		
-		if (this.parentView == null) {
-			this.drawingTransformMatrix.set(this.localTransformMatrix);
-		} else {
-			this.drawingTransformMatrix.set(this.parentView.drawingTransformMatrix);
+		if (currentTransformMatrix != null) {
+			this.drawingTransformMatrix.set(currentTransformMatrix);
 			this.drawingTransformMatrix.mul(this.localTransformMatrix);
+		} else {
+			this.drawingTransformMatrix.set(this.localTransformMatrix);
 		}
 		
 		return this.drawingTransformMatrix;
@@ -178,12 +136,13 @@ public class View extends PoolableImpl implements TouchResponder {
 	
 	final private void applyTransformToContext(DrawingContext context, float renderingFrameX, float renderingFrameY,
 			float renderingFrameWidth, float renderingFrameHeight) {
-		Matrix3 transformMatrix = this.computeTransformMatrix(renderingFrameX, renderingFrameY,
+		Matrix3 currentTransformMatrix = this.parentView != null ? this.parentView.drawingTransformMatrix : null;
+		Matrix3 transformMatrix = this.computeTransformMatrix(currentTransformMatrix, renderingFrameX, renderingFrameY,
 				renderingFrameWidth, renderingFrameHeight);
 		
 		this.savedTransformMatrix.set(context.getTransformMatrix());
-		
 		this.contextTransformMatrix.set(transformMatrix);
+		
 		context.setTransformMatrix(this.contextTransformMatrix);
 	}
 	
@@ -191,8 +150,16 @@ public class View extends PoolableImpl implements TouchResponder {
 		context.setTransformMatrix(this.savedTransformMatrix);
 	}
 	
-	final public boolean draw(DrawingContext context, float currentScreenX, float currentScreenY,
-			float currentProjectionRatioX, float currentProjectionRatioY, float parentAlpha) {
+	 protected void drawSubviews(DrawingContext context, float currentScreenX, float currentScreenY, float currentAlpha) {
+		View[] views = this.views.begin();
+		for (int i = 0, length = this.views.size; i < length; i++) {
+			final View view = views[i];
+			view.draw(context, currentScreenX, currentScreenY, currentAlpha);
+		}
+		this.views.end();
+	}
+	
+	final public boolean draw(DrawingContext context, float currentScreenX, float currentScreenY, float parentAlpha) {
 		if (!this.willBeDrawn) {
 			this.wasDrawn = false;
 			return false;
@@ -203,20 +170,18 @@ public class View extends PoolableImpl implements TouchResponder {
 		float renderingFrameWidth = this.renderingFrame.width;
 		float renderingFrameHeight = this.renderingFrame.height;
 		
-		this.parentProjectionRatioX = currentProjectionRatioX;
-		this.parentProjectionRatioY = currentProjectionRatioY;
 		this.parentX = currentScreenX;
 		this.parentY = currentScreenY;
 
-		currentScreenX += renderingFrameX * currentProjectionRatioX;
-		currentScreenY += renderingFrameY * currentProjectionRatioY;
+		currentScreenX += renderingFrameX;
+		currentScreenY += renderingFrameY;
 		
-		this.screenFrame.set(currentScreenX, currentScreenY, renderingFrameWidth * currentProjectionRatioX, renderingFrameHeight * currentProjectionRatioY);
+		this.screenFrame.set(currentScreenX, currentScreenY, renderingFrameWidth, renderingFrameHeight);
 		
-		if (!context.isVisibleInContext(this.screenFrame)) {
-			this.wasDrawn = false;
-			return false;
-		}
+//		if (!context.isVisibleInContext(this.screenFrame)) {
+//			this.wasDrawn = false;
+//			return false;
+//		}
 
 		final boolean clipViews = this.clipViews;
 		
@@ -239,15 +204,7 @@ public class View extends PoolableImpl implements TouchResponder {
 		
 		this.drawView(context, renderingFrameWidth, renderingFrameHeight, currentAlpha);
 		
-		currentProjectionRatioX *= this.projectionRatioX;
-		currentProjectionRatioY *= this.projectionRatioY;
-
-		View[] views = this.views.begin();
-		for (int i = 0, length = this.views.size; i < length; i++) {
-			final View view = views[i];
-			view.draw(context, currentScreenX, currentScreenY, currentProjectionRatioX, currentProjectionRatioY, currentAlpha);
-		}
-		this.views.end();
+		this.drawSubviews(context, currentScreenX, currentScreenY, currentAlpha);
 		
 		if (clipViews) {
 			context.unlimitRenderingBounds();
@@ -281,6 +238,8 @@ public class View extends PoolableImpl implements TouchResponder {
 				
 				if (animation == this.changedFrameAnimation) {
 					this.changedFrameAnimation = null;
+				} else if (animation == this.changedRotationAnimation) {
+					this.changedRotationAnimation = null;
 				}
 				
 				animation.removedFromView();
@@ -366,13 +325,10 @@ public class View extends PoolableImpl implements TouchResponder {
 			float x = currentView.frame.x;
 			float y = currentView.frame.y;
 			
-			if (this.projectionRatioX != 1 || this.projectionRatioY != 1) {
-				x *= this.projectionRatioX;
-				y *= this.projectionRatioY;
-			}
-			
 			outputVector.x += x;
 			outputVector.y += y;
+			
+			currentView = currentView.parentView;
 		}
 		
 		return outputVector;
@@ -412,8 +368,8 @@ public class View extends PoolableImpl implements TouchResponder {
 		float realX = x - this.parentX;
 		float realY = y - this.parentY;
 		
-		output.x = realX / this.parentProjectionRatioX;
-		output.y = realY / this.parentProjectionRatioY;
+		output.x = realX;
+		output.y = realY;
 		
 		return output;
 	}
@@ -482,36 +438,6 @@ public class View extends PoolableImpl implements TouchResponder {
 		this.setPosition(this.frame.x + x, this.frame.y);
 	}
 	
-	final public void setOriginToCenter() {
-		this.originType = ORIGIN_CENTER;
-		this.transformMatrixDirty = true;
-	}
-	
-	final public void setOriginToBottomLeft() {
-		this.originType = ORIGIN_BOTTOM_LEFT;
-		this.transformMatrixDirty = true;
-	}
-	
-	final public void setOriginToBottomRight() {
-		this.originType = ORIGIN_BOTTOM_RIGHT;
-		this.transformMatrixDirty = true;
-	}
-	
-	final public void setOriginToTopLeft() {
-		this.originType = ORIGIN_TOP_LEFT;
-		this.transformMatrixDirty = true;
-	}
-	
-	final public void setOriginToTopRight() {
-		this.originType = ORIGIN_TOP_RIGHT;
-		this.transformMatrixDirty = true;
-	}
-	
-	final public void setOriginToCustom() {
-		this.originType = ORIGIN_CUSTOM;
-		this.transformMatrixDirty = true;
-	}
-	
 	final private void removeFrameAnimation() {
 		if (this.changedFrameAnimation != null && this.changedFrameAnimation.getAnimationSequence() != animationSequence) {
 			// The changed frame is part from an old animation, removing it
@@ -554,28 +480,65 @@ public class View extends PoolableImpl implements TouchResponder {
 		// TODO Implement color animation
 	}
 	
+	final private void removeRotationAnimation() {
+		if (this.changedRotationAnimation != null && this.changedRotationAnimation.getAnimationSequence() != animationSequence) {
+			// The changed frame is part from an old animation, removing it
+			this.changedRotationAnimation.setExpired(true);
+			this.changedRotationAnimation = null;
+		}
+	}
 	
 	final private void willChangeRotation() {
-		// TODO Implement rotation animation
+		this.removeRotationAnimation();
+		
+		if (animationStarted) {
+			if (this.changedRotationAnimation == null) {
+				this.changedRotationAnimation = RotationAnimation.create();
+				this.changedRotationAnimation.setAnimationSequence(animationSequence);
+				this.changedRotationAnimation.setDuration(animateTime);
+				this.changedRotationAnimation.setInterpolation(animationInterpolation);
+				this.changedRotationAnimation.setEndedCallback(animationCompletionHandler);
+				
+				this.addAnimation(this.changedRotationAnimation);
+			}
+		}
 	}
 	
 	final private void didChangeRotation() {
-		// TODO Implement rotation animation
 		this.transformMatrixDirty = true;
+		
+		if (!animationStarted) {
+			this.renderingRotation = this.rotation;
+		} else {
+			this.changedRotationAnimation.setEndRotation(this.rotation);
+		}
+	}
+	
+	public void resizeToFit() {
+		
+	}
+	
+	public String outputViewHierarchy() {
+		StringBuilder sb = new StringBuilder();
+		
+		sb.append(this.getClass().getSimpleName() + " -> [" + this.frame + "]\n");
+		
+		for (View view : this.views) {
+			String outputView = view.outputViewHierarchy();
+			
+			sb.append("    " + outputView.replace("\n", "\n    "));
+		}
+		
+		return sb.toString();
+	}
+	
+	public void printViewHierarchy() {
+		System.out.println(this.outputViewHierarchy());
 	}
 
 	////////////////////////
 	// GETTERS/SETTERS
 	////////////////
-	
-	final public int getOriginType() {
-		return this.originType;
-	}
-	
-	final public void setOriginType(int originType) {
-		this.originType = originType;
-		this.transformMatrixDirty = true;
-	}
 	
 	/**
 	 * Get the View frame. Modifying the returned rectangle will have no effect
@@ -619,12 +582,33 @@ public class View extends PoolableImpl implements TouchResponder {
 		return this.frame.height;
 	}
 	
+	public void setPosition(Vector2 position) {
+		this.setFrame(position.x, position.y, this.frame.width, this.frame.height);
+	}
+	
 	public void setPosition(float x, float y) {
 		this.setFrame(x, y, this.frame.width, this.frame.height);
 	}
 	
 	public void setSize(float width, float height) {
 		this.setFrame(this.frame.x, this.frame.y, width, height);
+	}
+	
+	/**
+	 * Scale the frame size by ratioX on the width and ratioY on the width
+	 * @param ratioX
+	 * @param ratioY
+	 */
+	public void scale(float ratioWidth, float ratioHeight) {
+		this.setFrame(this.frame.x, this.frame.y, this.frame.width * ratioWidth, this.frame.height * ratioHeight);
+	}
+	
+	/**
+	 * Scale the frame size by ratio on the width and the height
+	 * @param ratio
+	 */
+	public void scale(float ratio) {
+		this.scale(ratio, ratio);
 	}
 	
 	public void setFrame(Rectangle frame) {
@@ -747,82 +731,6 @@ public class View extends PoolableImpl implements TouchResponder {
 		this.didChangeRotation();
 	}
 
-	public float getProjectionRatioX() {
-		return projectionRatioX;
-	}
-
-	public void setProjectionRatioX(float projectionRatioX) {
-		this.projectionRatioX = projectionRatioX;
-		this.transformMatrixDirty = true;
-	}
-
-	public float getProjectionRatioY() {
-		return projectionRatioY;
-	}
-
-	public void setProjectionRatioY(float projectionRatioY) {
-		this.projectionRatioY = projectionRatioY;
-		this.transformMatrixDirty = true;
-	}
-	
-	public void setProjectionRatioXY(float projectionRatioX, float projectionRatioY) {
-		this.projectionRatioX = projectionRatioX;
-		this.projectionRatioY = projectionRatioY;
-		this.transformMatrixDirty = true;
-	}
-	
-	public void setProjectionRatioXY(float projectionRatioXY) {
-		this.projectionRatioX = projectionRatioXY;
-		this.projectionRatioY = projectionRatioXY;
-		this.transformMatrixDirty = true;
-	}
-	
-	public float getOriginX() {
-		switch (this.originType) {
-		case ORIGIN_BOTTOM_RIGHT:
-		case ORIGIN_TOP_RIGHT:
-			return this.frame.width;
-		case ORIGIN_CENTER:
-			return this.frame.width * 0.5f;
-		case ORIGIN_CUSTOM:
-			return this.originX;
-		}
-		return 0;
-	}
-
-	/**
-	 * Change the point X to which the view is scaled or rotated
-	 * Using this method will automatically set the origin type to CUSTOM
-	 * @param originX
-	 */
-	public void setOriginX(float originX) {
-		this.originX = originX;
-		this.setOriginToCustom();
-	}
-
-	public float getOriginY() {
-		switch (this.originType) {
-		case ORIGIN_TOP_LEFT:
-		case ORIGIN_TOP_RIGHT:
-			return this.frame.height;
-		case ORIGIN_CENTER:
-			return this.frame.height * 0.5f;
-		case ORIGIN_CUSTOM:
-			return this.originY;
-		}
-		return 0;
-	}
-	
-	/**
-	 * Change the point Y to which the view is scaled or rotated
-	 * Using this method will automatically set the origin type to CUSTOM
-	 * @param originY
-	 */
-	public void setOriginY(float originY) {
-		this.originY = originY;
-		this.setOriginToCustom();
-	}
-
 	public boolean isTouchEnabled() {
 		return touchEnabled;
 	}
@@ -842,5 +750,13 @@ public class View extends PoolableImpl implements TouchResponder {
 	@Override
 	public boolean isAvailableForTouchResponding() {
 		return this.wasDrawn && this.touchEnabled;
+	}
+
+	public float getRenderingRotation() {
+		return renderingRotation;
+	}
+
+	public void setRenderingRotation(float renderingRotation) {
+		this.renderingRotation = renderingRotation;
 	}
 }

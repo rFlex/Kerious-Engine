@@ -74,11 +74,11 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 	private boolean failedLoadingResources;
 	private double time;
 	private String loadingFailedReason;
-	private float worldToPhysicsRatio;
-	private float physicsToWorldRatio;
+	private float pixelsToMetersRatio;
+	private float metersToPixelsRatio;
 	private int velocityIterations;
 	private int positionIterations;
-	
+
 	////////////////////////
 	// CONSTRUCTORS
 	////////////////
@@ -149,6 +149,7 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 			if (!entity.hasExpired()) {
 				entity.matchModelWithPhysics();
 				entity.update(deltaTime);
+				entity.updateView();
 			} else {
 				this.entities.removeValue(entity, true);
 				entity.removePhysicsBody();
@@ -279,8 +280,8 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 		fixtureDef.restitution = 0;
 		PolygonShape shape = new PolygonShape();
 		fixtureDef.shape = shape;
-
-		float worldToPhysicsRatio = this.worldToPhysicsRatio;
+		
+		float pixelsToMetersRatio = this.pixelsToMetersRatio;
 		
 		for (MapLayer mapLayer : map.getTiledMap().getLayers()) {
 			for (MapObject mapObject : mapLayer.getObjects()) {
@@ -288,13 +289,13 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 					RectangleMapObject rectangleMapObject = (RectangleMapObject)mapObject;
 					Rectangle rect = rectangleMapObject.getRectangle();
 					
-					bodyDef.position.x = rect.x * worldToPhysicsRatio;
-					bodyDef.position.y = rect.y * worldToPhysicsRatio;
+					bodyDef.position.x = rect.x * pixelsToMetersRatio;
+					bodyDef.position.y = rect.y * pixelsToMetersRatio;
 					
 					Body body = this.box2dWorld.createBody(bodyDef);
 					
-					float width = rect.width / 2 * worldToPhysicsRatio;
-					float height = rect.height / 2 * worldToPhysicsRatio;
+					float width = rect.width / 2 * pixelsToMetersRatio;
+					float height = rect.height / 2 * pixelsToMetersRatio;
 					
 					bodyDef.position.x = width;
 					bodyDef.position.y = height;
@@ -451,26 +452,26 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 	}
 
 	/**
-	 * Define how much points is a meter.
-	 * A value of 100 means 100 points in this world coordinate equals 1 meter.
+	 * Define how much pixels is a meter.
+	 * A value of 100 means 100 pixels in this world coordinate equals 1 meter.
 	 * The default value is 100
 	 * @param size
 	 */
 	public void setMeterPointsSize(float size) {
-		this.worldToPhysicsRatio = 1f / size;
-		this.physicsToWorldRatio = size;
+		this.pixelsToMetersRatio = 1f / size;
+		this.metersToPixelsRatio = size;
 	}
 	
 	public float getMeterPointsSize() {
-		return this.physicsToWorldRatio;
+		return this.metersToPixelsRatio;
 	}
 	
-	public float getPhysicsToWorldRatio() {
-		return this.physicsToWorldRatio;
+	public float getMetersToPixelsRatio() {
+		return this.metersToPixelsRatio;
 	}
 
-	public float getWorldToPhysicsRatio() {
-		return this.worldToPhysicsRatio;
+	public float getPixelsToMetersRatio() {
+		return this.pixelsToMetersRatio;
 	}
 
 	public int getVelocityIterations() {
