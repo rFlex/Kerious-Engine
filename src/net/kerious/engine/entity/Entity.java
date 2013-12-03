@@ -557,6 +557,10 @@ public abstract class Entity extends Controller<EntityModel> implements Temporar
 		return player;
 	}
 
+	/**
+	 * Set the Player that owns this Entity
+	 * @param player
+	 */
 	public void setPlayer(Player player) {
 		if (this.player != player) {
 			Player oldPlayer = this.player;

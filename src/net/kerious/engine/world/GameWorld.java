@@ -19,6 +19,7 @@ import net.kerious.engine.entity.Entity;
 import net.kerious.engine.entity.EntityException;
 import net.kerious.engine.entity.EntityManager;
 import net.kerious.engine.entity.EntityManagerListener;
+import net.kerious.engine.gamecontroller.GameController;
 import net.kerious.engine.map.GameMap;
 import net.kerious.engine.player.Player;
 import net.kerious.engine.player.PlayerManager;
@@ -64,6 +65,7 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 	final private EventManager eventManager;
 	final private PlayerManager playerManager;
 	final private ResourceBundle resourceBundle;
+	private GameController gameController;
 	private World box2dWorld;
 	private Console console;
 	private boolean addedToEngine;
@@ -159,6 +161,14 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 		this.entities.end();
 	}
 	
+	/**
+	 * Create an Entity on this world.
+	 * This Entity will automatically have an EntityModel, will
+	 * be added to this World and ready() will be called on it
+	 * @param entityType
+	 * @return
+	 * @throws EntityException
+	 */
 	public Entity createEntity(int entityType) throws EntityException {
 		return this.entityManager.createEntity(entityType);
 	}
@@ -195,6 +205,10 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 		this.eventManager.fireEvent(event);
 	}
 	
+	/**
+	 * Load asynchronously every resources declared in the ResourceBundle
+	 * Once the loading is finished, ready() will be called on this world
+	 */
 	public void load() {
 		if (!this.loadingResources) {
 			this.loadingResources = true;
@@ -203,6 +217,9 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 		}
 	}
 	
+	/**
+	 * Unload every loaded resources declared in the ResourceBundle
+	 */
 	public void unload() {
 		if (this.resourcesLoaded || this.loadingResources) {
 			this.getEngine().getResourceManager().unload(this.resourceBundle);
@@ -294,8 +311,8 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 					
 					Body body = this.box2dWorld.createBody(bodyDef);
 					
-					float width = rect.width / 2 * pixelsToMetersRatio;
-					float height = rect.height / 2 * pixelsToMetersRatio;
+					float width = rect.width / 2f * pixelsToMetersRatio;
+					float height = rect.height / 2f * pixelsToMetersRatio;
 					
 					bodyDef.position.x = width;
 					bodyDef.position.y = height;
@@ -428,18 +445,33 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 		return this.box2dWorld.getGravity().y;
 	}
 	
+	/**
+	 * Set the gravity in the physics world.
+	 * @param gravityX
+	 * @param gravityY
+	 */
 	public void setGravityX(float gravityX) {
 		Vector2 gravity = this.box2dWorld.getGravity();
 		gravity.x = gravityX;
 		this.box2dWorld.setGravity(gravity);
 	}
 	
+	/**
+	 * Set the gravity in the physics world.
+	 * @param gravityX
+	 * @param gravityY
+	 */
 	public void setGravityY(float gravityY) {
 		Vector2 gravity = this.box2dWorld.getGravity();
 		gravity.y = gravityY;
 		this.box2dWorld.setGravity(gravity);
 	}
 	
+	/**
+	 * Set the gravity in the physics world.
+	 * @param gravityX
+	 * @param gravityY
+	 */
 	public void setGravity(float gravityX, float gravityY) {
 		Vector2 gravity = this.box2dWorld.getGravity();
 		gravity.x = gravityX;
@@ -488,5 +520,18 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 
 	public void setPositionIterations(int positionIterations) {
 		this.positionIterations = positionIterations;
+	}
+
+	public GameController getGameController() {
+		return gameController;
+	}
+
+	/**
+	 * Set the GameController. If not null, this GameController will
+	 * be responsible for creating CommandPackets
+	 * @param gameController
+	 */
+	public void setGameController(GameController gameController) {
+		this.gameController = gameController;
 	}
 }

@@ -52,7 +52,7 @@ public abstract class Player extends Controller<PlayerModel> {
 	abstract public void disconnected();
 
 	/**
-	 * Update the Player logic
+	 * Update the Player logic.
 	 * @param deltaTime
 	 */
 	public void update(float deltaTime) {
@@ -62,15 +62,26 @@ public abstract class Player extends Controller<PlayerModel> {
 	}
 	
 	/**
-	 * 
+	 * Called when the server received a CommandPacket from this Player
+	 * Here you must update the player according to what the command says
 	 * @param directionAngle
 	 * @param directionStrength
 	 * @param actions
 	 */
 	abstract public void handleCommand(Array<AnalogPad> analogPads, long actions);
 	
+	/**
+	 * Called when the Player gained the ownership of an Entity.
+	 * An Entity can only belong to one player.
+	 * @param entity
+	 */
 	abstract public void gainedEntityOwnership(Entity entity);
 	
+	/**
+	 * Called when the Player lost the ownership of an Entity
+	 * An Entity can only belong to one player
+	 * @param entity
+	 */
 	abstract public void lostEntityOwnership(Entity entity);
 	
 	////////////////////////

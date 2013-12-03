@@ -229,7 +229,7 @@ public abstract class ClientGame extends Game implements ServerPeerListener {
 	
 	@Override
 	protected void worldIsReady() {
-		this.commandPacketCreator = this.getCommandPacketCreator(this, this.getWorld());
+		this.commandPacketCreator = this.getWorld().getGameController();
 		RequestPacket beginReceiveSnapshots = this.protocol.createRequestPacket(RequestPacket.RequestBeginReceiveSnapshots);
 		this.sendToServer(beginReceiveSnapshots);
 		beginReceiveSnapshots.release();
@@ -269,15 +269,6 @@ public abstract class ClientGame extends Game implements ServerPeerListener {
 			this.netInterpolation.handleSnapshot(snapshotPacket);
 		}
 	}
-	
-	/**
-	 * Return the CommandPacketCreator
-	 * If null is returned, the client will just send KeepAlivePacket to prevent the disconnection
-	 * @param game
-	 * @param world
-	 * @return
-	 */
-	protected abstract CommandPacketCreator getCommandPacketCreator(ClientGame game, GameWorld world);
 
 	////////////////////////
 	// GETTERS/SETTERS
@@ -305,5 +296,18 @@ public abstract class ClientGame extends Game implements ServerPeerListener {
 
 	public boolean isConnected() {
 		return this.serverPeer != null;
+	}
+
+	public CommandPacketCreator getCommandPacketCreator() {
+		return commandPacketCreator;
+	}
+
+	/**
+	 * Set the CommandPacketCreator that is responsible for creating CommandPacket.
+	 * By default, the ClientGame will use the GameController of the world, if it has one.
+	 * @param commandPacketCreator
+	 */
+	public void setCommandPacketCreator(CommandPacketCreator commandPacketCreator) {
+		this.commandPacketCreator = commandPacketCreator;
 	}
 }
