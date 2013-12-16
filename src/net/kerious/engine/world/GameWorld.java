@@ -328,6 +328,7 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 	
 	@Override
 	public void beginContact(Contact contact) {
+        if (1 == 1) { return; }
 		Fixture fixtureA = contact.getFixtureA();
 		Fixture fixtureB = contact.getFixtureB();
 		Entity firstEntity = (Entity)fixtureA.getBody().getUserData();
@@ -341,6 +342,7 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 
 	@Override
 	public void endContact(Contact contact) {
+        if (1 == 1) { return; }
 		Fixture fixtureA = contact.getFixtureA();
 		Fixture fixtureB = contact.getFixtureB();
 		Entity firstEntity = (Entity)fixtureA.getBody().getUserData();
@@ -476,6 +478,7 @@ public abstract class GameWorld extends ViewController implements 	TemporaryUpda
 		Vector2 gravity = this.box2dWorld.getGravity();
 		gravity.x = gravityX;
 		gravity.y = gravityY;
+
 		this.box2dWorld.setGravity(gravity);
 	}
 	

@@ -122,7 +122,7 @@ public abstract class Game extends AbstractKeriousProtocolService implements Tem
 
 	/**
 	 * Create a new world using the informations map
-	 * The information map contains every values hold in the 
+	 * The information map contains every ConsoleCommand values hold in the 
 	 * game console
 	 * @param informations
 	 * @return
